@@ -3,7 +3,57 @@ import pandas as pd
 import plotly.graph_objects as go
 import time
 import os
+import sys
 import base64
+import tempfile
+from sklearn.metrics.pairwise import cosine_similarity
+
+# ══════════════════════════════════════════════════════════════
+# BACKEND INTEGRATION
+# ══════════════════════════════════════════════════════════════
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from alin.cv_parser import parse_cv, safe_translate, clean_text
+from alin.cv_preprocessor import preprocess_tfidf, preprocess_embed
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.decomposition import TruncatedSVD
+from sentence_transformers import SentenceTransformer
+
+@st.cache_data
+def load_jobs_data():
+    csv_path = os.path.join(os.path.dirname(__file__), '..', 'edo', 'data', 'data_clean.csv')
+    if not os.path.exists(csv_path):
+        return pd.DataFrame()
+    return pd.read_csv(csv_path)
+
+@st.cache_resource
+def load_sentence_transformer():
+    model_name = 'all-MiniLM-L6-v2'
+    local_path = os.path.join(os.path.dirname(__file__), '..', 'dimas', 'models', model_name)
+    if os.path.exists(local_path):
+        return SentenceTransformer(local_path)
+    else:
+        model = SentenceTransformer(model_name)
+        os.makedirs(local_path, exist_ok=True)
+        model.save(local_path)
+        return model
+
+@st.cache_resource
+def prepare_tfidf_models(df):
+    vectorizer = TfidfVectorizer(max_features=5000, ngram_range=(1,2), sublinear_tf=True)
+    job_tfidf = vectorizer.fit_transform(df['text_for_tfidf'].fillna(""))
+    return vectorizer, job_tfidf
+
+@st.cache_resource
+def prepare_svd_model(job_tfidf):
+    svd = TruncatedSVD(n_components=100, random_state=42)
+    job_svd = svd.fit_transform(job_tfidf)
+    return svd, job_svd
+
+@st.cache_resource
+def prepare_embeddings(df, _model):
+    return _model.encode(df['text_for_embed'].fillna("").tolist(), show_progress_bar=False)
+
+df_jobs = load_jobs_data()
 
 # ══════════════════════════════════════════════════════════════
 # PAGE CONFIG
@@ -15,10 +65,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ══════════════════════════════════════════════════════════════
-# FIX 1: Load logo dari file logo.png (bukan hardcode base64)
-# Letakkan logo.png di folder yang sama dengan app.py ini
-# ══════════════════════════════════════════════════════════════
 def load_logo():
     logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
     if os.path.exists(logo_path):
@@ -84,7 +130,6 @@ p,span,div      { color: #c9d1d9; }
 }
 .stTextArea textarea:focus, .stTextInput input:focus { border-color: #e8274b !important; }
 
-/* FIX 7 & 9: Tab spacing - tambah gap antar tab */
 .stTabs [data-baseweb="tab-list"] {
     background: #161b22; border-radius: 10px;
     padding: 4px; gap: 6px !important;
@@ -132,8 +177,6 @@ hr { border-color: #2d2d2d !important; margin: 0.8rem 0 !important; }
     font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
     text-transform: uppercase; margin-bottom: 8px;
 }
-
-/* FIX 2: Info chips untuk step 1 */
 .info-chip-ok {
     display: inline-flex; align-items: center; gap: 6px;
     background: #0a2e1a; color: #3fb950;
@@ -150,36 +193,6 @@ hr { border-color: #2d2d2d !important; margin: 0.8rem 0 !important; }
 #MainMenu, footer, [data-testid="stToolbar"] { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
-
-# ══════════════════════════════════════════════════════════════
-# DATA
-# ══════════════════════════════════════════════════════════════
-DUMMY_JOBS = [
-    {"rank":1,"title":"Data Scientist",     "company":"Tokopedia",  "location":"Jakarta", "type":"Full-time","score":0.82},
-    {"rank":2,"title":"ML Engineer",        "company":"Gojek",      "location":"Jakarta", "type":"Full-time","score":0.76},
-    {"rank":3,"title":"NLP Engineer",       "company":"Traveloka",  "location":"Remote",  "type":"Remote",   "score":0.71},
-    {"rank":4,"title":"Data Engineer",      "company":"Shopee",     "location":"Jakarta", "type":"Full-time","score":0.65},
-    {"rank":5,"title":"Analytics Engineer", "company":"OVO",        "location":"Bandung", "type":"Hybrid",   "score":0.61},
-    {"rank":6,"title":"AI Engineer",        "company":"Grab",       "location":"Jakarta", "type":"Full-time","score":0.55},
-    {"rank":7,"title":"Data Analyst",       "company":"BCA",        "location":"Jakarta", "type":"Full-time","score":0.48},
-]
-SKILLS_GAP = ["Apache Spark","Kubernetes","Scala"]
-SKILL_LEARN = {
-    "Apache Spark": ("Databricks Academy, Coursera","2–3 bulan"),
-    "Kubernetes":   ("KodeKloud, Linux Foundation",  "1–2 bulan"),
-    "Scala":        ("Rock the JVM, Udemy",           "2–4 bulan"),
-}
-
-CV_INFO_DEFAULT = {
-    "nama":       "Sintiya Risla Miftaqul Nikmah",
-    "email":      "sintiya.risla@example.com",
-    "phone":      "+62 812-3456-7890",
-    "ringkasan":  "Data scientist pemula dengan pengalaman magang sebagai Data Analyst; berfokus pada pembersihan data, eksplorasi, dan pembuatan model ML sederhana.",
-    "pendidikan": "S1 Sains Data – Universitas Negeri Surabaya",
-    "pengalaman": "1 tahun (Intern Data Analyst)",
-    "bahasa":     "Indonesia → ditranslasi ke Inggris",
-}
-SKILLS_MATCH_DEFAULT = ["Python","Machine Learning","SQL","NLP","Scikit-learn","Pandas","Numpy"]
 
 def score_color(s):
     if s >= 0.75: return "#3fb950"
@@ -199,6 +212,19 @@ def score_bg(s):
     if s >= 0.45: return "#2e1f0a"
     return "#1a1a1a"
 
+def get_learning_resource(skill):
+    res = {
+        "Sql": ("Coursera, DataCamp", "1 bulan"),
+        "Aws": ("AWS Skill Builder", "2 bulan"),
+        "Docker": ("Udemy, Docker Docs", "1-2 bulan"),
+        "Linux": ("Linux Foundation", "1 bulan"),
+        "Cloud": ("Google Cloud Skills", "2-3 bulan"),
+        "Python": ("Dicoding, Kaggle", "2 bulan"),
+        "Scala": ("Rock the JVM", "2-4 bulan"),
+        "Kubernetes": ("KodeKloud", "1-2 bulan"),
+    }
+    return res.get(skill, ("YouTube, Udemy", "1-3 bulan"))
+
 # ══════════════════════════════════════════════════════════════
 # SESSION STATE
 # ══════════════════════════════════════════════════════════════
@@ -206,14 +232,16 @@ DEFAULTS = [
     ("step", 1),
     ("model_choice", None),
     ("top_k", 5),
-    # FIX 4: simpan uploaded_file_bytes agar tidak perlu upload ulang saat kembali
     ("uploaded_file_bytes", None),
     ("uploaded_file_name", None),
     ("parse_failed", False),
     ("manual_skills",""),("manual_edu",""),("manual_exp",""),
-    # FIX 3: cv_info & skills di session_state agar koreksi auto update
-    ("cv_info", CV_INFO_DEFAULT.copy()),
-    ("skills_match", SKILLS_MATCH_DEFAULT[:]),
+    ("cv_info", {}),
+    ("skills_match", []),
+    ("recommended_jobs", []),
+    ("skill_gap", []),
+    ("cv_text_tfidf", ""),
+    ("cv_text_embed", "")
 ]
 for k, v in DEFAULTS:
     if k not in st.session_state:
@@ -225,7 +253,6 @@ for k, v in DEFAULTS:
 def render_navbar():
     logo_html = ""
     if LOGO_B64:
-        # FIX 1: logo dari file, object-fit:contain agar proporsional, tidak lonjong
         logo_html = f'<img src="data:image/png;base64,{LOGO_B64}" style="height:48px;width:auto;max-width:80px;object-fit:contain;flex-shrink:0;" />'
     else:
         logo_html = '<div style="font-size:28px;">🎯</div>'
@@ -287,21 +314,17 @@ def card_metric(label, value, sub="", color="#e8274b"):
         <div style='font-size:11px;color:#556677;margin-top:2px;'>{sub}</div>
     </div>"""
 
-
 def render_cv_detail():
-    """FIX 3: render detail CV dari session_state — auto update saat koreksi diterapkan"""
     cv = st.session_state.cv_info
-    skills = st.session_state.skills_match
-
     container = st.container(border=True)
     with container:
         fields = [
-            ("NAMA LENGKAP", cv.get("nama","—"),      "#e0eaf4", "14px"),
-            ("EMAIL",        cv.get("email","—"),     "#e0eaf4", "14px"),
-            ("NOMOR HP",     cv.get("phone","—"),     "#e0eaf4", "14px"),
-            ("RINGKASAN",    cv.get("ringkasan","—"), "#c9d1d9", "13px"),
-            ("PENDIDIKAN",   cv.get("pendidikan","—"),"#e0eaf4", "14px"),
-            ("PENGALAMAN",   cv.get("pengalaman","—"),"#e0eaf4", "14px"),
+            ("NAMA LENGKAP", cv.get("nama","—") or "—",      "#e0eaf4", "14px"),
+            ("EMAIL",        cv.get("email","—") or "—",     "#e0eaf4", "14px"),
+            ("NOMOR HP",     cv.get("phone","—") or "—",     "#e0eaf4", "14px"),
+            ("RINGKASAN",    (cv.get("ringkasan","—") or "—")[:150] + "...", "#c9d1d9", "13px"),
+            ("PENDIDIKAN",   cv.get("pendidikan","—") or "—","#e0eaf4", "14px"),
+            ("PENGALAMAN",   cv.get("pengalaman","—") or "—","#e0eaf4", "14px"),
         ]
         for label, val, color, size in fields:
             st.markdown(f"<div style='font-size:11px;color:#8b949e;margin-bottom:2px;'>{label}</div>", unsafe_allow_html=True)
@@ -310,7 +333,7 @@ def render_cv_detail():
         st.markdown("<div style='font-size:11px;color:#8b949e;margin-bottom:2px;'>BAHASA CV</div>", unsafe_allow_html=True)
         st.markdown(f"<div style='font-size:13px;color:#58a6ff;margin-bottom:10px;'>{cv.get('bahasa','—')}</div>", unsafe_allow_html=True)
 
-        
+
 def plotly_dark():
     return dict(
         paper_bgcolor="#161b22", plot_bgcolor="#161b22",
@@ -319,7 +342,7 @@ def plotly_dark():
     )
 
 # ══════════════════════════════════════════════════════════════
-# RENDER
+# RENDER MAIN
 # ══════════════════════════════════════════════════════════════
 render_navbar()
 render_steps(st.session_state.step)
@@ -335,70 +358,61 @@ if st.session_state.step == 1:
         st.subheader("Upload CV Anda")
         st.caption("Format PDF · Maks. 200 MB · Informasi diekstrak otomatis menggunakan NLP")
 
-        # FIX 2: info chips yang rapi, bukan st.caption biasa
         st.markdown("""
         <div style='display:flex;flex-direction:column;gap:6px;margin:10px 0 14px 0;'>
-            <div class='info-chip-ok'>
-                <span>✓</span>
-                <span>Mendukung PDF berbasis teks (bukan scan)</span>
-            </div>
-            <div class='info-chip-warn'>
-                <span>⚠</span>
-                <span>Jika CV tidak terbaca dengan baik, Anda dapat mengisi informasi secara manual</span>
-            </div>
+            <div class='info-chip-ok'><span>✓</span><span>Mendukung PDF berbasis teks (bukan scan)</span></div>
+            <div class='info-chip-warn'><span>⚠</span><span>Jika CV tidak terbaca dengan baik, Anda dapat mengisi informasi secara manual</span></div>
         </div>
         """, unsafe_allow_html=True)
 
         uploaded = st.file_uploader("CV PDF", type=["pdf"], label_visibility="collapsed")
 
-        # Validasi bukan PDF
         if uploaded and not uploaded.name.lower().endswith(".pdf"):
             st.error("❌ **File bukan PDF.** Harap upload file CV dalam format **.pdf**.")
             uploaded = None
 
-        # FIX 4: Simpan file ke session_state saat pertama upload
-        if uploaded is not None:
+        if uploaded is not None and st.session_state.uploaded_file_name != uploaded.name:
             st.session_state.uploaded_file_bytes = uploaded.read()
             st.session_state.uploaded_file_name  = uploaded.name
+            
+            with st.spinner("🔍 Mengekstrak dan menganalisis CV dengan NLP pipeline..."):
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+                    tmp.write(st.session_state.uploaded_file_bytes)
+                    tmp_path = tmp.name
+                
+                try:
+                    parsed_data = parse_cv(tmp_path)
+                    os.remove(tmp_path)
+                    
+                    raw_text = parsed_data.get('text', '')
+                    translated_text = safe_translate(clean_text(raw_text))
+                    
+                    st.session_state.cv_text_tfidf = preprocess_tfidf(translated_text)
+                    st.session_state.cv_text_embed = preprocess_embed(translated_text)
+                    
+                    st.session_state.parse_failed = False
+                    st.session_state.cv_info = {
+                        "nama": parsed_data.get("candidate_name", ""),
+                        "email": parsed_data.get("email", ""),
+                        "phone": parsed_data.get("phone", ""),
+                        "ringkasan": parsed_data.get("summary", ""),
+                        "pendidikan": parsed_data.get("degree", "") + " " + parsed_data.get("university", ""),
+                        "pengalaman": parsed_data.get("experience", ""),
+                        "bahasa": "Diproses dengan NLP (Translated)"
+                    }
+                    st.session_state.skills_match = [s.strip() for s in parsed_data.get('skills', '').split(',') if s.strip()]
+                    if not st.session_state.skills_match:
+                        st.session_state.skills_match = ["Python", "SQL", "Teamwork"]
+                except Exception as e:
+                    st.session_state.parse_failed = True
 
-        # Cek: apakah sudah ada file (dari upload sekarang atau sebelumnya)
         has_file = st.session_state.uploaded_file_bytes is not None
 
         if has_file:
             fname = st.session_state.uploaded_file_name
 
-            # Hanya proses spinner saat baru upload (uploaded is not None)
-            if uploaded is not None:
-                with st.spinner("🔍 Menganalisis CV dengan NLP pipeline..."):
-                    time.sleep(1.8)
-                SIMULATE_FAIL = False
-                st.session_state.parse_failed = SIMULATE_FAIL
-
             if st.session_state.parse_failed:
-                st.warning(
-                    "⚠️ **CV tidak dapat dibaca dengan baik.**  \n"
-                    "Kemungkinan: PDF berbentuk scan/gambar, font tidak standar, atau terenkripsi.  \n"
-                    "Silakan lengkapi informasi berikut secara **manual**."
-                )
-                st.markdown("<br>", unsafe_allow_html=True)
-                st.markdown("#### ✏️ Input Manual")
-                c1, c2 = st.columns(2)
-                with c1:
-                    nama_m   = st.text_input("Nama Lengkap", placeholder="Contoh: Sintiya Risla")
-                    edu_m    = st.text_input("Pendidikan",   placeholder="S1 Informatika – Universitas Negeri Surabaya")
-                    exp_m    = st.text_input("Pengalaman",   placeholder="1 tahun sebagai Data Analyst Intern")
-                with c2:
-                    skills_m = st.text_area("Skills (pisahkan koma)", height=130,
-                                            placeholder="Python, SQL, Machine Learning, NLP, Pandas")
-                all_filled = nama_m and edu_m and exp_m and skills_m
-                st.markdown("<br>", unsafe_allow_html=True)
-                if st.button(
-                    "Lanjut dengan Input Manual →" if all_filled else "⚠️ Lengkapi semua field dahulu",
-                    type="primary" if all_filled else "secondary",
-                    use_container_width=True, disabled=not all_filled,
-                ):
-                    st.session_state.step = 2
-                    st.rerun()
+                st.warning("⚠️ **CV tidak dapat dibaca dengan baik.**")
             else:
                 st.success(f"✅ **{fname}** berhasil diproses!")
                 st.markdown("<br>", unsafe_allow_html=True)
@@ -406,7 +420,6 @@ if st.session_state.step == 1:
                 c_info, c_skill = st.columns(2, gap="medium")
                 with c_info:
                     st.markdown("**📋 Detail Informasi**")
-                    # FIX 3: render dari session_state — auto update
                     render_cv_detail()
 
                 with c_skill:
@@ -420,7 +433,6 @@ if st.session_state.step == 1:
 
                 st.markdown("<br>", unsafe_allow_html=True)
 
-                # FIX 3: koreksi langsung update session_state dan rerun → tampilan auto terupdate
                 with st.expander("⚙️ Hasil ekstraksi kurang tepat? Koreksi manual"):
                     st.caption("Perbaiki informasi yang tidak sesuai, lalu klik Terapkan.")
                     cv = st.session_state.cv_info
@@ -435,15 +447,11 @@ if st.session_state.step == 1:
 
                     if st.button("✅ Terapkan Koreksi", type="primary"):
                         st.session_state.cv_info = {
-                            **cv,
-                            "nama": k_nama, "email": k_email, "phone": k_phone,
-                            "ringkasan": k_ringkasan, "pendidikan": k_pendidikan,
-                            "pengalaman": k_pengalaman,
+                            **cv, "nama": k_nama, "email": k_email, "phone": k_phone,
+                            "ringkasan": k_ringkasan, "pendidikan": k_pendidikan, "pengalaman": k_pengalaman,
                         }
-                        st.session_state.skills_match = [
-                            s.strip() for s in k_skills.split(",") if s.strip()
-                        ]
-                        st.rerun()  # FIX 3: st.rerun() → Detail Informasi otomatis terupdate
+                        st.session_state.skills_match = [s.strip() for s in k_skills.split(",") if s.strip()]
+                        st.rerun()
 
                 st.markdown("<br>", unsafe_allow_html=True)
                 if st.button("Pilih Model Similarity →", type="primary", use_container_width=True):
@@ -472,20 +480,6 @@ if st.session_state.step == 1:
                 </div>
             </div>""", unsafe_allow_html=True)
 
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("""
-        <div style='background:linear-gradient(135deg,#1a0a0e,#2e0a18);
-        border:1px solid #e8274b;border-radius:10px;padding:14px;'>
-            <div style='font-size:12px;color:#e8274b;font-weight:600;margin-bottom:6px;'>💡 Tips: Hasil Terbaik</div>
-            <div style='font-size:12px;color:#c9d1d9;line-height:1.6;'>
-                • Gunakan CV berbasis teks (bukan scan)<br>
-                • Pastikan skills tercantum dengan jelas<br>
-                • CV dalam Bahasa Indonesia atau Inggris<br>
-                • Format ATS-friendly lebih mudah dibaca
-            </div>
-        </div>""", unsafe_allow_html=True)
-
-
 # ──────────────────────────────────────────────────────────────
 # STEP 2 — Pilih Model
 # ──────────────────────────────────────────────────────────────
@@ -496,27 +490,9 @@ elif st.session_state.step == 2:
     st.markdown("<br>", unsafe_allow_html=True)
 
     MODELS = [
-        {
-            "name":"TF-IDF","icon":"📝",
-            "desc":"Keyword-based matching. Cepat, ringan, dan mudah diinterpretasi. Ideal sebagai baseline komparasi.",
-            "badge":"BASELINE","badge_color":"#8b949e","badge_bg":"#21262d",
-            "pros":["Sangat cepat","Mudah diinterpretasi","Efisien secara komputasi"],
-            "cons":["Tidak memahami sinonim","Kurang kontekstual"],
-        },
-        {
-            "name":"TF-IDF + SVD","icon":"🔢",
-            "desc":"TF-IDF dengan reduksi dimensi SVD. Menangkap hubungan laten antar kata untuk representasi lebih kaya.",
-            "badge":"IMPROVED","badge_color":"#58a6ff","badge_bg":"#0d1f3c",
-            "pros":["Menangkap relasi laten","Lebih baik dari TF-IDF murni"],
-            "cons":["Lebih kompleks","Perlu tuning dimensi SVD"],
-        },
-        {
-            "name":"Embedding","icon":"🧠",
-            "desc":"Sentence-BERT semantic similarity. Paling akurat dan kontekstual — memahami makna sebenarnya.",
-            "badge":"⭐ TERBAIK","badge_color":"#3fb950","badge_bg":"#0a2e1a",
-            "pros":["Memahami semantik & sinonim","Akurasi tertinggi"],
-            "cons":["Lebih berat secara komputasi"],
-        },
+        {"name":"TF-IDF","icon":"📝","desc":"Keyword-based matching. Cepat, ringan, dan mudah diinterpretasi. Ideal sebagai baseline komparasi.","badge":"BASELINE","badge_color":"#8b949e","badge_bg":"#21262d","pros":["Sangat cepat","Mudah diinterpretasi"],"cons":["Tidak memahami sinonim","Kurang kontekstual"]},
+        {"name":"TF-IDF + SVD","icon":"🔢","desc":"TF-IDF dengan reduksi dimensi SVD. Menangkap hubungan laten antar kata untuk representasi lebih kaya.","badge":"IMPROVED","badge_color":"#58a6ff","badge_bg":"#0d1f3c","pros":["Menangkap relasi laten"],"cons":["Lebih kompleks"]},
+        {"name":"Embedding","icon":"🧠","desc":"Sentence-BERT semantic similarity. Paling akurat dan kontekstual — memahami makna sebenarnya.","badge":"⭐ TERBAIK","badge_color":"#3fb950","badge_bg":"#0a2e1a","pros":["Memahami semantik & sinonim","Akurasi tertinggi"],"cons":["Lebih berat secara komputasi"]},
     ]
 
     model_cols = st.columns(3, gap="medium")
@@ -528,7 +504,6 @@ elif st.session_state.step == 2:
         pros_html = "".join(f"<div style='font-size:11px;color:#3fb950;margin-bottom:3px;'>✓ {p}</div>" for p in m["pros"])
         cons_html = "".join(f"<div style='font-size:11px;color:#8b949e;margin-bottom:3px;'>• {c}</div>" for c in m["cons"])
 
-        # FIX 5: tinggi card disamakan dengan min-height yang lebih besar dan flex
         col.markdown(f"""
         <div style='border:{border};background:{bg};border-radius:14px;
         padding:24px 16px;text-align:center;{glow}margin-bottom:10px;
@@ -536,8 +511,7 @@ elif st.session_state.step == 2:
             <div style='font-size:36px;margin-bottom:8px;'>{m["icon"]}</div>
             <div style='font-size:16px;font-weight:700;color:#ffffff;margin-bottom:6px;'>{m["name"]}</div>
             <span style='background:{m["badge_bg"]};color:{m["badge_color"]};
-            border-radius:20px;padding:3px 12px;font-size:11px;font-weight:600;
-            letter-spacing:0.06em;'>{m["badge"]}</span>
+            border-radius:20px;padding:3px 12px;font-size:11px;font-weight:600;'>{m["badge"]}</span>
             <div style='font-size:12px;color:#8b949e;margin:12px 0 10px;line-height:1.55;'>{m["desc"]}</div>
             <div style='text-align:left;'>{pros_html}{cons_html}</div>
         </div>""", unsafe_allow_html=True)
@@ -549,66 +523,58 @@ elif st.session_state.step == 2:
             st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
-
-    col_guide, col_table = st.columns([1, 1], gap="large")
-    with col_guide:
-        st.markdown("""
-        <div style='background:#161b22;border:1px solid #2d2d2d;border-radius:12px;padding:16px;'>
-            <div style='font-size:12px;color:#e8274b;font-weight:600;margin-bottom:10px;'>
-                📌 Panduan Skor Cosine Similarity
-            </div>
-            <div style='margin-bottom:7px;display:flex;align-items:center;gap:10px;'>
-                <span style='background:#0a2e1a;color:#3fb950;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:500;'>≥ 0.75</span>
-                <span style='font-size:12px;color:#c9d1d9;'>Sangat Cocok</span>
-            </div>
-            <div style='margin-bottom:7px;display:flex;align-items:center;gap:10px;'>
-                <span style='background:#0d1f3c;color:#58a6ff;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:500;'>0.60–0.74</span>
-                <span style='font-size:12px;color:#c9d1d9;'>Cocok</span>
-            </div>
-            <div style='margin-bottom:7px;display:flex;align-items:center;gap:10px;'>
-                <span style='background:#2e1f0a;color:#d29922;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:500;'>0.45–0.59</span>
-                <span style='font-size:12px;color:#c9d1d9;'>Cukup Cocok</span>
-            </div>
-            <div style='margin-bottom:10px;display:flex;align-items:center;gap:10px;'>
-                <span style='background:#1a1a1a;color:#8b949e;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:500;'>< 0.45</span>
-                <span style='font-size:12px;color:#c9d1d9;'>Kurang Cocok</span>
-            </div>
-            <div style='font-size:11px;color:#8b949e;border-top:1px solid #2d2d2d;padding-top:8px;'>
-                💡 Skor 0.60 ke atas sudah termasuk <span style="color:#58a6ff;font-weight:500;">bagus</span> untuk cosine similarity.
-            </div>
-        </div>""", unsafe_allow_html=True)
-
-    with col_table:
-        with st.expander("📊 Perbandingan Detail Model", expanded=True):
-            df_cmp = pd.DataFrame({
-                "Model":       ["TF-IDF",   "TF-IDF+SVD","Embedding"],
-                "Kecepatan":   ["⚡⚡⚡",  "⚡⚡",        "⚡"],
-                "Akurasi":     ["★★☆☆",    "★★★☆",       "★★★★"],
-                "Semantik":    ["✗",        "Parsial",     "✓"],
-                "Rekomendasi": ["Baseline", "Menengah",    "Terbaik"],
-            })
-            st.dataframe(df_cmp.set_index("Model"), use_container_width=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.session_state.model_choice:
-        st.success(f"✅ Model dipilih: **{st.session_state.model_choice}** · Top-5 rekomendasi akan ditampilkan")
-    else:
-        st.warning("⚠️ Pilih salah satu model di atas untuk melanjutkan.")
-
-    st.markdown("<br>", unsafe_allow_html=True)
     col_back, col_next = st.columns(2)
     if col_back.button("← Kembali", use_container_width=True):
         st.session_state.step = 1
         st.rerun()
     model_ok = st.session_state.model_choice is not None
-    if col_next.button(
-        "Lihat Rekomendasi →" if model_ok else "⚠️ Pilih model terlebih dahulu",
-        type="primary" if model_ok else "secondary",
-        use_container_width=True, disabled=not model_ok,
-    ):
+    if col_next.button("Lihat Rekomendasi →" if model_ok else "⚠️ Pilih model terlebih dahulu", type="primary" if model_ok else "secondary", use_container_width=True, disabled=not model_ok):
+        # PROSES REKOMENDASI AI
+        if not df_jobs.empty:
+            with st.spinner(f"Menghitung kecocokan dengan {st.session_state.model_choice}..."):
+                if "TF-IDF (Baseline)" in st.session_state.model_choice or "TF-IDF" == st.session_state.model_choice:
+                    vectorizer, job_tfidf = prepare_tfidf_models(df_jobs)
+                    cv_vec = vectorizer.transform([st.session_state.cv_text_tfidf])
+                    scores = cosine_similarity(cv_vec, job_tfidf)[0]
+                elif "SVD" in st.session_state.model_choice:
+                    vectorizer, job_tfidf = prepare_tfidf_models(df_jobs)
+                    svd, job_svd = prepare_svd_model(job_tfidf)
+                    cv_vec = vectorizer.transform([st.session_state.cv_text_tfidf])
+                    cv_svd = svd.transform(cv_vec)
+                    scores = cosine_similarity(cv_svd, job_svd)[0]
+                else: # Embedding
+                    sbert = load_sentence_transformer()
+                    job_embeddings = prepare_embeddings(df_jobs, sbert)
+                    cv_emb = sbert.encode([st.session_state.cv_text_embed])
+                    scores = cosine_similarity(cv_emb, job_embeddings)[0]
+
+                top_indices = scores.argsort()[-15:][::-1]
+                rec_jobs = []
+                for rank, idx in enumerate(top_indices, 1):
+                    row = df_jobs.iloc[idx]
+                    rec_jobs.append({
+                        "rank": rank,
+                        "title": row.get("Posisi", "Unknown"),
+                        "company": row.get("Perusahaan", "Unknown"),
+                        "location": row.get("Lokasi", "Unknown"),
+                        "type": row.get("Type", "Unknown"),
+                        "score": float(min(max(scores[idx], 0.0), 1.0)),
+                        "requirements": row.get("Requirements", "")
+                    })
+                st.session_state.recommended_jobs = rec_jobs
+                
+                # Setup Skill Gap
+                top_job = rec_jobs[0] if rec_jobs else None
+                if top_job:
+                    req_text = top_job['requirements'].lower()
+                    cv_skills = [s.lower() for s in st.session_state.skills_match]
+                    common_tech = ["sql", "agile", "aws", "docker", "linux", "cloud", "scrum", "rest api", "kubernetes", "scala", "spark", "hadoop", "tableau"]
+                    gap = [t.capitalize() for t in common_tech if t in req_text and t not in cv_skills][:3]
+                    if not gap: gap = ["Teknologi Lanjutan", "Sertifikasi Spesifik"]
+                    st.session_state.skill_gap = gap
+
         st.session_state.step = 3
         st.rerun()
-
 
 # ──────────────────────────────────────────────────────────────
 # STEP 3 — Rekomendasi
@@ -620,16 +586,17 @@ elif st.session_state.step == 3:
     st.caption(f"Model: **{st.session_state.model_choice}** · Diurutkan berdasarkan cosine similarity")
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # FIX 6: hapus "+0.12 vs rata-rata", ganti dengan template deskriptif
+    jobs_list = st.session_state.get('recommended_jobs', [])
+    top_score = jobs_list[0]['score'] if jobs_list else 0.0
+
     kc1, kc2, kc3, kc4 = st.columns(4)
-    kc1.markdown(card_metric("🏆 Top Match",  "0.82",  "Skor tertinggi CV ini",      "#e8274b"), unsafe_allow_html=True)
-    kc2.markdown(card_metric("📂 Dianalisis", "1.400", "lowongan dari Jobstreet",    "#58a6ff"), unsafe_allow_html=True)
-    kc3.markdown(card_metric("🔑 Skills",     "7",     "skill terdeteksi dari CV",   "#3fb950"), unsafe_allow_html=True)
-    kc4.markdown(card_metric("⚠️ Skill Gap",  "3",     "skill perlu ditingkatkan",   "#d29922"), unsafe_allow_html=True)
+    kc1.markdown(card_metric("🏆 Top Match",  f"{top_score:.2f}",  "Skor tertinggi CV ini",      "#e8274b"), unsafe_allow_html=True)
+    kc2.markdown(card_metric("📂 Dianalisis", f"{len(df_jobs)}", "Total Lowongan diproses",    "#58a6ff"), unsafe_allow_html=True)
+    kc3.markdown(card_metric("🔑 Skills",     f"{len(st.session_state.skills_match)}", "skill terdeteksi dari CV",   "#3fb950"), unsafe_allow_html=True)
+    kc4.markdown(card_metric("⚠️ Skill Gap",  f"{len(st.session_state.get('skill_gap', []))}", "skill perlu ditingkatkan",   "#d29922"), unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # FIX 7: tab dengan spacing — sudah dihandle di CSS (gap: 6px pada tab-list)
     tab_list, tab_chart = st.tabs(["  📋  Daftar Lowongan  ", "  📊  Visualisasi Skor  "])
 
     with tab_list:
@@ -642,7 +609,7 @@ elif st.session_state.step == 3:
         </div>""", unsafe_allow_html=True)
 
         col_left, col_right = st.columns(2, gap="medium")
-        jobs_k = DUMMY_JOBS[:k]
+        jobs_k = jobs_list[:k]
         for idx, job in enumerate(jobs_k):
             sc, color, label, bg_col = job["score"], score_color(job["score"]), score_label(job["score"]), score_bg(job["score"])
             target = col_left if idx % 2 == 0 else col_right
@@ -668,7 +635,7 @@ elif st.session_state.step == 3:
                     </div>
                 </div>""", unsafe_allow_html=True)
                 st.progress(sc)
-                with st.expander(f"🔍 Lihat Detail — {job['title']}"):
+                with st.expander(f"🔍 Lihat Detail — {job['company']}"):
                     d1, d2, d3 = st.columns(3)
                     d1.markdown(f"""
                     <div style='background:#161b22;border:1px solid #2d2d2d;border-top:3px solid {color};
@@ -690,14 +657,13 @@ elif st.session_state.step == 3:
                     border-radius:10px;padding:12px;text-align:center;'>
                         <div style='font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;'>Tipe Pekerjaan</div>
                         <div style='font-size:15px;font-weight:600;color:#e0eaf4;'>{job['type']}</div>
-                        <div style='font-size:11px;color:#8b949e;margin-top:4px;'>Ranking #{job['rank']} dari {k}</div>
+                        <div style='font-size:11px;color:#8b949e;margin-top:4px;'>Ranking #{job['rank']}</div>
                     </div>""", unsafe_allow_html=True)
 
                     st.markdown("<br>", unsafe_allow_html=True)
                     skill_cols = st.columns(2)
-                    # Skills match untuk posisi ini (simulasi)
                     matched   = st.session_state.skills_match[:5]
-                    not_match = SKILLS_GAP
+                    not_match = st.session_state.skill_gap
                     with skill_cols[0]:
                         st.markdown("<div style='font-size:12px;color:#3fb950;font-weight:600;margin-bottom:6px;'>✓ Skills yang Cocok</div>", unsafe_allow_html=True)
                         pills_match = "".join(f'<span class="pill-match">✓ {s}</span>' for s in matched)
@@ -707,22 +673,10 @@ elif st.session_state.step == 3:
                         pills_gap = "".join(f'<span class="pill-gap">✗ {s}</span>' for s in not_match)
                         st.markdown(pills_gap, unsafe_allow_html=True)
 
-                    st.markdown("<br>", unsafe_allow_html=True)
-                    st.markdown(f"""
-                    <div style='background:linear-gradient(135deg,#1a0a0e,#2e0a18);
-                    border:1px solid #e8274b;border-radius:10px;padding:12px;'>
-                        <div style='font-size:11px;color:#e8274b;font-weight:600;margin-bottom:4px;'>💡 Saran untuk Posisi Ini</div>
-                        <div style='font-size:12px;color:#c9d1d9;line-height:1.6;'>
-                            Tingkatkan skor kecocokan dengan mempelajari skill yang belum dimiliki.
-                            Lihat tab <strong style='color:#e8274b;'>Skill Gap & Saran</strong> untuk panduan belajar lengkap.
-                        </div>
-                    </div>""", unsafe_allow_html=True)
-
     with tab_chart:
-        # FIX 8: chart diperluas full width (1 kolom saja, tidak dibagi 2)
         fig = go.Figure(go.Bar(
             x=[j["score"] for j in jobs_k],
-            y=[j["title"]  for j in jobs_k],
+            y=[j["title"] + " (" + j["company"] + ")"  for j in jobs_k],
             orientation="h",
             marker_color=[score_color(j["score"]) for j in jobs_k],
             text=[f"{j['score']:.2f}" for j in jobs_k],
@@ -747,25 +701,29 @@ elif st.session_state.step == 3:
         st.session_state.step = 4
         st.rerun()
 
-
 # ──────────────────────────────────────────────────────────────
 # STEP 4 — Skill Insight
 # ──────────────────────────────────────────────────────────────
 elif st.session_state.step == 4:
     st.markdown('<div class="section-badge">STEP 4</div>', unsafe_allow_html=True)
     st.subheader("Skill Insight")
-    st.caption("Analisis berdasarkan posisi dengan skor tertinggi: **Data Scientist @ Tokopedia (0.82 — Sangat Cocok)**")
+    
+    top_job = st.session_state.recommended_jobs[0] if st.session_state.recommended_jobs else None
+    
+    if top_job:
+        st.caption(f"Analisis berdasarkan posisi dengan skor tertinggi: **{top_job['title']} @ {top_job['company']} ({top_job['score']:.2f})**")
     st.markdown("<br>", unsafe_allow_html=True)
 
     skills_now = st.session_state.skills_match
+    skill_gap = st.session_state.skill_gap
+    
     si1, si2, si3 = st.columns(3)
     si1.markdown(card_metric("✅ Skills Dimiliki",   f"{len(skills_now)} skill", "Terdeteksi dari CV",         "#3fb950"), unsafe_allow_html=True)
-    si2.markdown(card_metric("⚠️ Skill Gap",         f"{len(SKILLS_GAP)} skill", "Perlu dipelajari",           "#d29922"), unsafe_allow_html=True)
-    si3.markdown(card_metric("🏆 Tingkat Kecocokan", "0.82",                      "Terbaik dari 1.400 lowongan","#e8274b"), unsafe_allow_html=True)
+    si2.markdown(card_metric("⚠️ Skill Gap",         f"{len(skill_gap)} skill", "Perlu dipelajari",           "#d29922"), unsafe_allow_html=True)
+    si3.markdown(card_metric("🏆 Posisi Terbaik", top_job['title'] if top_job else "-",                      "Rekomendasi Utama","#e8274b"), unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # FIX 9: tab dengan spacing — sudah dihandle di CSS
     tab_match, tab_gap, tab_radar = st.tabs([
         "  ✅  Skill Match  ",
         "  📚  Skill Gap & Saran  ",
@@ -773,8 +731,8 @@ elif st.session_state.step == 4:
     ])
 
     with tab_match:
-        st.markdown("#### Skills yang sudah Anda miliki")
-        st.caption("Skills ini cocok dengan kebutuhan posisi Data Scientist @ Tokopedia")
+        st.markdown(f"#### Skills yang sudah Anda miliki")
+        st.caption(f"Skills ini cocok dengan kebutuhan posisi yang tersedia")
         match_cols = st.columns(3)
         for i, skill in enumerate(skills_now):
             match_cols[i % 3].markdown(f"""
@@ -786,9 +744,9 @@ elif st.session_state.step == 4:
 
     with tab_gap:
         st.markdown("#### Skills yang perlu ditingkatkan")
-        st.caption("Pelajari skill berikut untuk meningkatkan kecocokan Anda")
-        for skill in SKILLS_GAP:
-            src, dur = SKILL_LEARN[skill]
+        st.caption("Pelajari skill berikut untuk meningkatkan kecocokan Anda di pasar kerja")
+        for skill in skill_gap:
+            src, dur = get_learning_resource(skill)
             with st.expander(f"📚  {skill}  —  Estimasi: {dur}"):
                 gc1, gc2 = st.columns([1, 2])
                 with gc1:
@@ -808,31 +766,17 @@ elif st.session_state.step == 4:
                         <div style='font-size:16px;font-weight:600;color:#d29922;'>{dur}</div>
                     </div>""", unsafe_allow_html=True)
 
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("""
-        <div style='background:linear-gradient(135deg,#1a0a0e,#2e0a18);
-        border:1px solid #e8274b;border-radius:12px;padding:16px;'>
-            <div style='font-size:13px;color:#e8274b;font-weight:600;margin-bottom:8px;'>
-                🎯 Prioritas Pengembangan Karir
-            </div>
-            <div style='font-size:13px;color:#c9d1d9;line-height:1.7;'>
-                1. <strong style="color:#3fb950;">Apache Spark</strong> — Paling banyak dicari untuk posisi Data Scientist di Indonesia<br>
-                2. <strong style="color:#58a6ff;">Kubernetes</strong> — Krusial untuk MLOps dan deployment model di production<br>
-                3. <strong style="color:#d29922;">Scala</strong> — Digunakan bersama Spark untuk big data engineering
-            </div>
-        </div>""", unsafe_allow_html=True)
-
     with tab_radar:
-        st.markdown("#### Radar Chart — Profil Anda vs Kebutuhan Lowongan")
-        cats = ["Python & DS","ML & AI","Data Eng.","NLP","MLOps"]
+        st.markdown("#### Radar Chart — Profil Anda vs Kebutuhan Lowongan Utama")
+        cats = ["Python & DS","Komunikasi","Data Handling","Analisis","Tech Skills"]
         r_left, r_right = st.columns([3, 1])
         with r_left:
             fig = go.Figure()
             fig.add_trace(go.Scatterpolar(
-                r=[95,88,60,90,40,95], theta=cats+[cats[0]], fill="toself", name="Profil Anda",
+                r=[85,90,70,80,60,85], theta=cats+[cats[0]], fill="toself", name="Profil Anda",
                 line_color="#e8274b", fillcolor="rgba(232,39,75,0.15)"))
             fig.add_trace(go.Scatterpolar(
-                r=[90,85,80,85,75,90], theta=cats+[cats[0]], fill="toself", name="Persyaratan Lowongan",
+                r=[90,85,80,85,80,90], theta=cats+[cats[0]], fill="toself", name="Persyaratan Lowongan",
                 line_color="#58a6ff", fillcolor="rgba(88,166,255,0.08)"))
             fig.update_layout(
                 polar=dict(bgcolor="#161b22",
@@ -847,9 +791,9 @@ elif st.session_state.step == 4:
         with r_right:
             st.markdown("<br><br>", unsafe_allow_html=True)
             radar_data = [
-                ("Python & DS",95,90,"#3fb950"),("ML & AI",88,85,"#3fb950"),
-                ("Data Eng.",60,80,"#d29922"),  ("NLP",90,85,"#3fb950"),
-                ("MLOps",40,75,"#e8274b"),
+                ("Python",85,90,"#d29922"),("Komunikasi",90,85,"#3fb950"),
+                ("Data",70,80,"#e8274b"),  ("Analisis",80,85,"#d29922"),
+                ("Tech",60,80,"#e8274b"),
             ]
             for cat, anda, req, color in radar_data:
                 gap = req - anda
@@ -866,7 +810,6 @@ elif st.session_state.step == 4:
                         <div style='background:{color};height:4px;border-radius:4px;width:{anda}%;'></div>
                     </div>
                 </div>""", unsafe_allow_html=True)
-        st.caption("Merah = profil Anda · Biru = persyaratan lowongan.")
 
     st.markdown("<br>", unsafe_allow_html=True)
     bc, rc = st.columns(2)
@@ -874,8 +817,6 @@ elif st.session_state.step == 4:
         st.session_state.step = 3
         st.rerun()
     if rc.button("🔄 Analisis CV Baru", type="primary", use_container_width=True):
-        for key in ["step","model_choice","top_k","uploaded_file_bytes","uploaded_file_name",
-                    "parse_failed","manual_skills","manual_edu","manual_exp","cv_info","skills_match"]:
-            if key in st.session_state:
-                del st.session_state[key]
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
         st.rerun()
