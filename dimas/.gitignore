@@ -1,0 +1,12 @@
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore large CSV datasets used for evaluation to save repository space
+*.csv
+
+# Exceptions (If you want to keep tiny sample data, uncomment the line below)
+# !sample_10_cv.csv
+
+# Ignore python cache
+__pycache__/
+*.pyc
