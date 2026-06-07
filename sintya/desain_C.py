@@ -16,6 +16,15 @@ st.markdown("""
 <style>
     .stApp { background-color: #f8f7ff; }
 
+    /* Force dark text color on light background for Streamlit components in Dark Mode */
+    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6,
+    .stApp label, .stApp p, .stApp [data-testid="stMarkdownContainer"] p {
+        color: #3C3489 !important;
+    }
+    .stApp [data-testid="stCaptionContainer"] {
+        color: #7F77DD !important;
+    }
+
     /* Step pill */
     .step-pill {
         display: inline-block;

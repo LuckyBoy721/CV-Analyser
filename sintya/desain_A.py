@@ -19,6 +19,15 @@ st.markdown("""
         background-color: #f0faf5;
         border-right: 1px solid #c6e8d8;
     }
+    /* Force sidebar text to be dark green for contrast */
+    [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] strong,
+    [data-testid="stSidebar"] div[role="radiogroup"] label {
+        color: #0F6E56 !important;
+    }
     /* Metric cards */
     [data-testid="metric-container"] {
         background: #f0faf5;
@@ -112,7 +121,7 @@ if "Upload" in page:
     st.title("📤 Upload CV Anda")
     st.caption("Format PDF · Maks. 5 MB")
 
-    uploaded = st.file_uploader("", type=["pdf"], label_visibility="collapsed")
+    uploaded = st.file_uploader("Upload CV (PDF)", type=["pdf"], label_visibility="collapsed")
 
     if uploaded:
         with st.spinner("Mengekstrak informasi dari CV..."):
