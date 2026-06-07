@@ -13,9 +13,9 @@ echo -e "${CYAN}=====================================================${NC}"
 echo -e "${GREEN}       EVALUASI MODEL CV MATCHING (BENCHMARK)        ${NC}"
 echo -e "${CYAN}=====================================================${NC}\n"
 
-if [ ! -f "sample_100_cv_with_ground_truth.csv" ] || [ ! -f "data_clean.csv" ]; then
+if [ ! -f "data/database/sample_100_cv_with_ground_truth.csv" ] || [ ! -f "data/database/data_clean.csv" ]; then
     echo -e "${RED}[!] Data tidak lengkap.${NC}"
-    echo -e "${RED}Pastikan file 'sample_100_cv_with_ground_truth.csv' dan 'data_clean.csv' ada di dalam folder dimas/.${NC}"
+    echo -e "${RED}Pastikan file 'sample_100_cv_with_ground_truth.csv' dan 'data_clean.csv' ada di dalam folder dimas/data/database/.${NC}"
     exit 1
 fi
 

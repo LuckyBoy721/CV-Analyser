@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import numpy as np
 import re
@@ -12,8 +13,8 @@ def normalize(text):
 
 def main():
     print("Memuat dataset untuk Embedding Model...")
-    df_cv = pd.read_csv('sample_100_cv_with_ground_truth.csv')
-    df_job = pd.read_csv('data_clean.csv')
+    df_cv = pd.read_csv('data/database/sample_100_cv_with_ground_truth.csv')
+    df_job = pd.read_csv('data/database/data_clean.csv')
     
     df_cv["ground_truth"] = df_cv["ground_truth"].apply(ast.literal_eval)
     
@@ -60,6 +61,12 @@ def main():
         nilai_precision_at_5.append(sum(relevan) / len(relevan))
         
     df_cv_hasil['precision@5'] = nilai_precision_at_5
+    
+    # Simpan hasil prediksi
+    os.makedirs('data/hasil', exist_ok=True)
+    df_cv_hasil.to_csv('data/hasil/hasil_embedding.csv', index=False)
+    print("✅ File hasil prediksi berhasil disimpan di: data/hasil/hasil_embedding.csv")
+    
     print(f"\n=== HASIL EVALUASI EMBEDDING ===")
     print(f"Threshold (Q3 rounded): {threshold}")
     print(f"Mean Precision@5: {df_cv_hasil['precision@5'].mean():.4f}\n")
