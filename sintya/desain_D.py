@@ -44,14 +44,29 @@ def prepare_tfidf_models(df):
     return vectorizer, job_tfidf
 
 @st.cache_resource
-def prepare_svd_model(job_tfidf):
+def prepare_svd_model(_job_tfidf):
     svd = TruncatedSVD(n_components=100, random_state=42)
-    job_svd = svd.fit_transform(job_tfidf)
+    job_svd = svd.fit_transform(_job_tfidf)
     return svd, job_svd
+
+import numpy as np
 
 @st.cache_resource
 def prepare_embeddings(df, _model):
-    return _model.encode(df['text_for_embed'].fillna("").tolist(), show_progress_bar=False)
+    embed_path = os.path.join(os.path.dirname(__file__), '..', 'dimas', 'models', 'job_embeddings.npy')
+    
+    # Check if precomputed embeddings exist
+    if os.path.exists(embed_path):
+        return np.load(embed_path)
+    
+    # Compute embeddings if not found
+    embeddings = _model.encode(df['text_for_embed'].fillna("").tolist(), show_progress_bar=True)
+    
+    # Save for future use
+    os.makedirs(os.path.dirname(embed_path), exist_ok=True)
+    np.save(embed_path, embeddings)
+    
+    return embeddings
 
 df_jobs = load_jobs_data()
 
@@ -187,39 +202,37 @@ hr { border-color: #2d2d2d !important; margin: 0.8rem 0 !important; }
 </style>
 """, unsafe_allow_html=True)
 
-<<<<<<< HEAD
-=======
-# ══════════════════════════════════════════════════════════════
-# DATA
-# ══════════════════════════════════════════════════════════════
-DUMMY_JOBS = [
-    {"rank":1,"title":"Data Scientist",     "company":"Tokopedia",  "location":"Jakarta", "type":"Full-time","score":0.82,"gaji":"Rp 15–25 juta/bulan","link":"https://www.jobstreet.co.id"},
-    {"rank":2,"title":"ML Engineer",        "company":"Gojek",      "location":"Jakarta", "type":"Full-time","score":0.76,"gaji":"Rp 18–30 juta/bulan","link":"https://www.jobstreet.co.id"},
-    {"rank":3,"title":"NLP Engineer",       "company":"Traveloka",  "location":"Remote",  "type":"Remote",   "score":0.71,"gaji":"Rp 14–22 juta/bulan","link":"https://www.jobstreet.co.id"},
-    {"rank":4,"title":"Data Engineer",      "company":"Shopee",     "location":"Jakarta", "type":"Full-time","score":0.65,"gaji":"Rp 12–20 juta/bulan","link":"https://www.jobstreet.co.id"},
-    {"rank":5,"title":"Analytics Engineer", "company":"OVO",        "location":"Bandung", "type":"Hybrid",   "score":0.61,"gaji":"Rp 10–18 juta/bulan","link":"https://www.jobstreet.co.id"},
-    {"rank":6,"title":"AI Engineer",        "company":"Grab",       "location":"Jakarta", "type":"Full-time","score":0.55,"gaji":"Rp 16–28 juta/bulan","link":"https://www.jobstreet.co.id"},
-    {"rank":7,"title":"Data Analyst",       "company":"BCA",        "location":"Jakarta", "type":"Full-time","score":0.48,"gaji":"Rp 8–15 juta/bulan","link":"https://www.jobstreet.co.id"},
-]
-SKILLS_GAP = ["Apache Spark","Kubernetes","Scala"]
-SKILL_LEARN = {
-    "Apache Spark": ("Databricks Academy, Coursera","2–3 bulan"),
-    "Kubernetes":   ("KodeKloud, Linux Foundation",  "1–2 bulan"),
-    "Scala":        ("Rock the JVM, Udemy",           "2–4 bulan"),
-}
+def score_color(s):
+    if s >= 0.75: return '#3fb950'
+    if s >= 0.60: return '#58a6ff'
+    if s >= 0.45: return '#d29922'
+    return '#8b949e'
 
-CV_INFO_DEFAULT = {
-    "nama":       "Sintiya Risla Miftaqul Nikmah",
-    "email":      "sintiya.risla@example.com",
-    "phone":      "+62 812-3456-7890",
-    "ringkasan":  "Data scientist pemula dengan pengalaman magang sebagai Data Analyst; berfokus pada pembersihan data, eksplorasi, dan pembuatan model ML sederhana.",
-    "pendidikan": "S1 Sains Data – Universitas Negeri Surabaya",
-    "pengalaman": "1 tahun (Intern Data Analyst)",
-    "bahasa":     "Indonesia → ditranslasi ke Inggris",
-}
-SKILLS_MATCH_DEFAULT = ["Python","Machine Learning","SQL","NLP","Scikit-learn","Pandas","Numpy"]
+def score_label(s):
+    if s >= 0.75: return 'Sangat Cocok'
+    if s >= 0.60: return 'Cocok'
+    if s >= 0.45: return 'Cukup Cocok'
+    return 'Kurang Cocok'
 
->>>>>>> feature/frontend-ui
+def score_bg(s):
+    if s >= 0.75: return '#0a2e1a'
+    if s >= 0.60: return '#0d1f3c'
+    if s >= 0.45: return '#2e1f0a'
+    return '#1a1a1a'
+
+def get_learning_resource(skill):
+    res = {
+        'Sql': ('Coursera, DataCamp', '1 bulan'),
+        'Aws': ('AWS Skill Builder', '2 bulan'),
+        'Docker': ('Udemy, Docker Docs', '1-2 bulan'),
+        'Linux': ('Linux Foundation', '1 bulan'),
+        'Cloud': ('Google Cloud Skills', '2-3 bulan'),
+        'Python': ('Dicoding, Kaggle', '2 bulan'),
+        'Scala': ('Rock the JVM', '2-4 bulan'),
+        'Kubernetes': ('KodeKloud', '1-2 bulan'),
+    }
+    return res.get(skill.title(), ('YouTube, Udemy', '1-3 bulan'))
+
 def score_color(s):
     if s >= 0.75: return "#3fb950"
     if s >= 0.60: return "#58a6ff"
@@ -262,21 +275,15 @@ DEFAULTS = [
     ("uploaded_file_name", None),
     ("parse_failed", False),
     ("manual_skills",""),("manual_edu",""),("manual_exp",""),
-<<<<<<< HEAD
     ("cv_info", {}),
     ("skills_match", []),
     ("recommended_jobs", []),
     ("skill_gap", []),
     ("cv_text_tfidf", ""),
-    ("cv_text_embed", "")
-=======
-    # FIX 3: cv_info & skills di session_state agar koreksi auto update
-    ("cv_info", CV_INFO_DEFAULT.copy()),
-    ("skills_match", SKILLS_MATCH_DEFAULT[:]),
+    ("cv_text_embed", ""),
     ("selected_job_title", None),
     ("selected_job_company", None),
     ("selected_job_score", None),
->>>>>>> feature/frontend-ui
 ]
 for k, v in DEFAULTS:
     if k not in st.session_state:
@@ -451,15 +458,8 @@ if st.session_state.step == 1:
                 st.success(f"✅ **{fname}** berhasil diproses!")
                 st.markdown("<br>", unsafe_allow_html=True)
 
-<<<<<<< HEAD
-                c_info, c_skill = st.columns(2, gap="medium")
-                with c_info:
-                    st.markdown("**📋 Detail Informasi**")
-                    render_cv_detail()
-=======
                 st.markdown("**📋 Detail Informasi**")
                 render_cv_detail()
->>>>>>> feature/frontend-ui
 
                 st.markdown("**🏷️ Skills Terdeteksi**")
                 pills = "".join(f'<span class="pill-match">✓ {s}</span>' for s in st.session_state.skills_match)
@@ -518,12 +518,9 @@ if st.session_state.step == 1:
                 </div>
             </div>""", unsafe_allow_html=True)
 
-<<<<<<< HEAD
-=======
         st.markdown("<br>", unsafe_allow_html=True)
 
 
->>>>>>> feature/frontend-ui
 # ──────────────────────────────────────────────────────────────
 # STEP 2 — Pilih Model
 # ──────────────────────────────────────────────────────────────
@@ -533,11 +530,6 @@ elif st.session_state.step == 2:
     st.markdown("<br>", unsafe_allow_html=True)
 
     MODELS = [
-<<<<<<< HEAD
-        {"name":"TF-IDF","icon":"📝","desc":"Keyword-based matching. Cepat, ringan, dan mudah diinterpretasi. Ideal sebagai baseline komparasi.","badge":"BASELINE","badge_color":"#8b949e","badge_bg":"#21262d","pros":["Sangat cepat","Mudah diinterpretasi"],"cons":["Tidak memahami sinonim","Kurang kontekstual"]},
-        {"name":"TF-IDF + SVD","icon":"🔢","desc":"TF-IDF dengan reduksi dimensi SVD. Menangkap hubungan laten antar kata untuk representasi lebih kaya.","badge":"IMPROVED","badge_color":"#58a6ff","badge_bg":"#0d1f3c","pros":["Menangkap relasi laten"],"cons":["Lebih kompleks"]},
-        {"name":"Embedding","icon":"🧠","desc":"Sentence-BERT semantic similarity. Paling akurat dan kontekstual — memahami makna sebenarnya.","badge":"⭐ TERBAIK","badge_color":"#3fb950","badge_bg":"#0a2e1a","pros":["Memahami semantik & sinonim","Akurasi tertinggi"],"cons":["Lebih berat secara komputasi"]},
-=======
         {
             "name":"TF-IDF","icon":"📝",
             "desc":"Keyword-based matching. Cepat, ringan, dan mudah diinterpretasi. Ideal sebagai baseline komparasi.",
@@ -559,7 +551,6 @@ elif st.session_state.step == 2:
             "pros":["Memahami semantik & sinonim","Akurasi tertinggi"],
             "cons":["Lebih berat secara komputasi"],
         },
->>>>>>> feature/frontend-ui
     ]
 
     model_cols = st.columns(3, gap="medium")
@@ -590,13 +581,10 @@ elif st.session_state.step == 2:
             st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
-<<<<<<< HEAD
-=======
 
     col_guide, col_table = st.columns([1, 1], gap="large")
 
     st.markdown("<br>", unsafe_allow_html=True)
->>>>>>> feature/frontend-ui
     col_back, col_next = st.columns(2)
     if col_back.button("← Kembali", use_container_width=True):
         st.session_state.step = 1
@@ -663,7 +651,6 @@ elif st.session_state.step == 3:
     top_score = jobs_list[0]['score'] if jobs_list else 0.0
 
     kc1, kc2, kc3, kc4 = st.columns(4)
-<<<<<<< HEAD
     kc1.markdown(card_metric("🏆 Top Match",  f"{top_score:.2f}",  "Skor tertinggi CV ini",      "#e8274b"), unsafe_allow_html=True)
     kc2.markdown(card_metric("📂 Dianalisis", f"{len(df_jobs)}", "Total Lowongan diproses",    "#58a6ff"), unsafe_allow_html=True)
     kc3.markdown(card_metric("🔑 Skills",     f"{len(st.session_state.skills_match)}", "skill terdeteksi dari CV",   "#3fb950"), unsafe_allow_html=True)
@@ -675,17 +662,6 @@ elif st.session_state.step == 3:
 
     with tab_list:
         st.markdown("""
-=======
-    kc1.markdown(card_metric("🏆 Top Match",  "82%",  "Skor tertinggi CV ini",      "#e8274b"), unsafe_allow_html=True)
-    kc2.markdown(card_metric("📂 Dianalisis", "1.400", "lowongan dari Jobstreet",    "#58a6ff"), unsafe_allow_html=True)
-    kc3.markdown(card_metric("🔑 Skills",     "7",     "skill terdeteksi dari CV",   "#3fb950"), unsafe_allow_html=True)
-    kc4.markdown(card_metric("⚠️ Skill Gap",  "3",     "skill perlu ditingkatkan",   "#d29922"), unsafe_allow_html=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # FIX 7: tab dengan spacing — sudah dihandle di CSS (gap: 6px pada tab-list)
-    st.markdown("""
->>>>>>> feature/frontend-ui
         <div style='display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px;'>
             <span style='font-size:12px;color:#3fb950;'>● ≥ 75% — Sangat Cocok</span>
             <span style='font-size:12px;color:#58a6ff;'>● 60–74% — Cocok</span>
@@ -693,72 +669,108 @@ elif st.session_state.step == 3:
             <span style='font-size:12px;color:#8b949e;'>● &lt; 45% — Kurang</span>
         </div>""", unsafe_allow_html=True)
 
-<<<<<<< HEAD
-        col_left, col_right = st.columns(2, gap="medium")
+        col_left, col_right = st.columns(2, gap='medium')
         jobs_k = jobs_list[:k]
         for idx, job in enumerate(jobs_k):
             sc, color, label, bg_col = job["score"], score_color(job["score"]), score_label(job["score"]), score_bg(job["score"])
-            target = col_left if idx % 2 == 0 else col_right
-            with target:
-                st.markdown(f"""
-                <div class="job-card">
-                    <div style='display:flex;justify-content:space-between;align-items:flex-start;'>
-                        <div style='flex:1;min-width:0;'>
-                            <div style='display:flex;align-items:center;gap:8px;margin-bottom:5px;'>
-                                <span style='background:#e8274b;color:#fff;border-radius:6px;
-                                padding:2px 8px;font-size:11px;font-weight:600;flex-shrink:0;'>#{job['rank']}</span>
-                                <strong style='font-size:15px;color:#ffffff;'>{job['title']}</strong>
-                            </div>
-                            <div style='font-size:12px;color:#8b949e;'>
-                                🏢 {job['company']} &nbsp;·&nbsp; 📍 {job['location']} &nbsp;·&nbsp; 🕒 {job['type']}
-                            </div>
+            is_selected = (st.session_state.get("selected_job_title") == job["title"] and
+                           st.session_state.get("selected_job_company") == job["company"])
+            selected_border = "border-left: 4px solid #3fb950;" if is_selected else ""
+            selected_bg = "background: #0a2e1a;" if is_selected else ""
+            dipilih_badge = "<span style='background:#0a2e1a;color:#3fb950;border:1px solid #2ea043;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600;margin-left:6px;'>✓ Dipilih</span>" if is_selected else ""
+
+            # Progress bar dimasukkan ke dalam HTML card — hindari st.progress() di antara HTML & expander
+            card_border = "border-left: 4px solid #3fb950;" if is_selected else "border-left: 4px solid #e8274b;"
+            card_bg = "#0a2e1a" if is_selected else "#161b22"
+            progress_pct = int(sc * 100)
+            st.markdown(f"""
+            <div style='background:{card_bg};border:1px solid #2d2d2d;{card_border}border-radius:12px;
+            padding:16px 18px;margin-bottom:4px;'>
+                <div style='display:flex;justify-content:space-between;align-items:flex-start;gap:16px;'>
+                    <div style='flex:1;min-width:0;'>
+                        <div style='display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;'>
+                            <span style='background:#e8274b;color:#fff;border-radius:6px;
+                            padding:3px 9px;font-size:11px;font-weight:600;flex-shrink:0;'>#{job['rank']}</span>
+                            <strong style='font-size:15px;color:#ffffff;'>{job['title']}</strong>{dipilih_badge}
                         </div>
-                        <div style='text-align:right;flex-shrink:0;margin-left:12px;'>
-                            <div style='font-size:22px;font-weight:700;color:{color};'>{sc:.2f}</div>
-                            <div style='font-size:10px;font-weight:600;color:{color};
-                            background:{bg_col};border-radius:10px;padding:1px 8px;'>{label}</div>
+                        <div style='font-size:12px;color:#8b949e;margin-bottom:10px;'>
+                            🏢 {job['company']} &nbsp;·&nbsp; 📍 {job['location']} &nbsp;·&nbsp; 🕒 {job['type']}
+                        </div>
+                        <div style='background:#21262d;border-radius:4px;height:5px;width:100%;'>
+                            <div style='background:{color};height:5px;border-radius:4px;width:{progress_pct}%;'></div>
                         </div>
                     </div>
+                    <div style='text-align:right;flex-shrink:0;'>
+                        <div style='font-size:22px;font-weight:700;color:{color};margin-bottom:2px;'>{sc*100:.0f}%</div>
+                        <div style='font-size:10px;font-weight:600;color:{color};
+                        background:{bg_col};border-radius:10px;padding:2px 8px;display:inline-block;'>{label}</div>
+                    </div>
+                </div>
+            </div>""", unsafe_allow_html=True)
+            with st.expander(f"🔍 Lihat Detail — {job['title']}"):
+                d1, d2, d3, d4 = st.columns(4)
+                d1.markdown(f"""
+                <div style='background:#161b22;border:1px solid #2d2d2d;border-top:3px solid {color};
+                border-radius:10px;padding:12px;text-align:center;'>
+                    <div style='font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;'>Skor Kecocokan</div>
+                    <div style='font-size:26px;font-weight:700;color:{color};'>{sc*100:.0f}%</div>
+                    <div style='font-size:11px;font-weight:600;color:{color};background:{bg_col};
+                    border-radius:10px;padding:2px 8px;display:inline-block;margin-top:2px;'>{label}</div>
                 </div>""", unsafe_allow_html=True)
-                st.progress(sc)
-                with st.expander(f"🔍 Lihat Detail — {job['company']}"):
-                    d1, d2, d3 = st.columns(3)
-                    d1.markdown(f"""
-                    <div style='background:#161b22;border:1px solid #2d2d2d;border-top:3px solid {color};
-                    border-radius:10px;padding:12px;text-align:center;'>
-                        <div style='font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;'>Skor Kecocokan</div>
-                        <div style='font-size:26px;font-weight:700;color:{color};'>{sc:.2f}</div>
-                        <div style='font-size:11px;font-weight:600;color:{color};background:{bg_col};
-                        border-radius:10px;padding:2px 8px;display:inline-block;margin-top:2px;'>{label}</div>
-                    </div>""", unsafe_allow_html=True)
-                    d2.markdown(f"""
-                    <div style='background:#161b22;border:1px solid #2d2d2d;border-top:3px solid #58a6ff;
-                    border-radius:10px;padding:12px;text-align:center;'>
-                        <div style='font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;'>Perusahaan</div>
-                        <div style='font-size:15px;font-weight:600;color:#e0eaf4;'>{job['company']}</div>
-                        <div style='font-size:11px;color:#8b949e;margin-top:4px;'>📍 {job['location']}</div>
-                    </div>""", unsafe_allow_html=True)
-                    d3.markdown(f"""
-                    <div style='background:#161b22;border:1px solid #2d2d2d;border-top:3px solid #d29922;
-                    border-radius:10px;padding:12px;text-align:center;'>
-                        <div style='font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;'>Tipe Pekerjaan</div>
-                        <div style='font-size:15px;font-weight:600;color:#e0eaf4;'>{job['type']}</div>
-                        <div style='font-size:11px;color:#8b949e;margin-top:4px;'>Ranking #{job['rank']}</div>
-                    </div>""", unsafe_allow_html=True)
+                d2.markdown(f"""
+                <div style='background:#161b22;border:1px solid #2d2d2d;border-top:3px solid #58a6ff;
+                border-radius:10px;padding:12px;text-align:center;'>
+                    <div style='font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;'>Perusahaan</div>
+                    <div style='font-size:15px;font-weight:600;color:#e0eaf4;'>{job['company']}</div>
+                    <div style='font-size:11px;color:#8b949e;margin-top:4px;'>📍 {job['location']}</div>
+                </div>""", unsafe_allow_html=True)
+                d3.markdown(f"""
+                <div style='background:#161b22;border:1px solid #2d2d2d;border-top:3px solid #d29922;
+                border-radius:10px;padding:12px;text-align:center;'>
+                    <div style='font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;'>Tipe Pekerjaan</div>
+                    <div style='font-size:15px;font-weight:600;color:#e0eaf4;'>{job['type']}</div>
+                    <div style='font-size:11px;color:#8b949e;margin-top:4px;'>Ranking #{job['rank']} dari {k}</div>
+                </div>""", unsafe_allow_html=True)
+                d4.markdown(f"""
+                <div style='background:#161b22;border:1px solid #2d2d2d;border-top:3px solid #3fb950;
+                border-radius:10px;padding:12px;text-align:center;'>
+                    <div style='font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;'>Estimasi Gaji</div>
+                    <div style='font-size:13px;font-weight:600;color:#3fb950;'>{job.get('gaji', 'TBA')}</div>
+                    <div style='margin-top:6px;'><a href="{job.get('link', '#')}" target="_blank" style='font-size:11px;color:#58a6ff;text-decoration:none;'>🔗 Lihat Lowongan</a></div>
+                </div>""", unsafe_allow_html=True)
 
-                    st.markdown("<br>", unsafe_allow_html=True)
-                    skill_cols = st.columns(2)
-                    matched   = st.session_state.skills_match[:5]
-                    not_match = st.session_state.skill_gap
-                    with skill_cols[0]:
-                        st.markdown("<div style='font-size:12px;color:#3fb950;font-weight:600;margin-bottom:6px;'>✓ Skills yang Cocok</div>", unsafe_allow_html=True)
-                        pills_match = "".join(f'<span class="pill-match">✓ {s}</span>' for s in matched)
-                        st.markdown(pills_match, unsafe_allow_html=True)
-                    with skill_cols[1]:
-                        st.markdown("<div style='font-size:12px;color:#ff7b7b;font-weight:600;margin-bottom:6px;'>✗ Skills yang Belum Dimiliki</div>", unsafe_allow_html=True)
-                        pills_gap = "".join(f'<span class="pill-gap">✗ {s}</span>' for s in not_match)
-                        st.markdown(pills_gap, unsafe_allow_html=True)
+                st.markdown("<br>", unsafe_allow_html=True)
+                skill_cols = st.columns(2)
+                matched   = st.session_state.skills_match[:5]
+                not_match = st.session_state.skill_gap
+                with skill_cols[0]:
+                    st.markdown("<div style='font-size:12px;color:#3fb950;font-weight:600;margin-bottom:6px;'>✓ Skills yang Cocok</div>", unsafe_allow_html=True)
+                    pills_match = "".join(f'<span class="pill-match">✓ {s}</span>' for s in matched)
+                    match_content = pills_match if pills_match else '<span style="color:#8b949e;font-size:12px;">—</span>'
+                    st.markdown(f"<div style='display:flex;flex-wrap:wrap;gap:6px;'>{match_content}</div>", unsafe_allow_html=True)
+                with skill_cols[1]:
+                    st.markdown("<div style='font-size:12px;color:#ff7b7b;font-weight:600;margin-bottom:6px;'>✗ Skills yang Belum Dimiliki</div>", unsafe_allow_html=True)
+                    pills_gap = "".join(f'<span class="pill-gap">✗ {s}</span>' for s in not_match)
+                    gap_content = pills_gap if pills_gap else '<span style="color:#8b949e;font-size:12px;">—</span>'
+                    st.markdown(f"<div style='display:flex;flex-wrap:wrap;gap:6px;'>{gap_content}</div>", unsafe_allow_html=True)
 
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown(f"""
+                <div style='background:linear-gradient(135deg,#1a0a0e,#2e0a18);
+                border:1px solid #e8274b;border-radius:10px;padding:12px;'>
+                    <div style='font-size:11px;color:#e8274b;font-weight:600;margin-bottom:4px;'>💡 Saran untuk Posisi Ini</div>
+                    <div style='font-size:12px;color:#c9d1d9;line-height:1.6;'>
+                        Tingkatkan skor kecocokan dengan mempelajari skill yang belum dimiliki.
+                        Lihat tab <strong style='color:#e8274b;'>Skill Gap & Saran</strong> untuk panduan belajar lengkap.
+                    </div>
+                </div>""", unsafe_allow_html=True)
+
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.button(f"✅ Pilih '{job['title']} @ {job['company']}' untuk Skill Insight", key=f"pick_{idx}", use_container_width=True, type="primary"):
+                    st.session_state.selected_job_title   = job["title"]
+                    st.session_state.selected_job_company = job["company"]
+                    st.session_state.selected_job_score   = job["score"]
+                    st.rerun()
     with tab_chart:
         fig = go.Figure(go.Bar(
             x=[j["score"] for j in jobs_k],
@@ -777,110 +789,6 @@ elif st.session_state.step == 3:
             height=380,
         )
         st.plotly_chart(fig, use_container_width=True)
-=======
-    jobs_k = DUMMY_JOBS[:k]
-    for idx, job in enumerate(jobs_k):
-        sc, color, label, bg_col = job["score"], score_color(job["score"]), score_label(job["score"]), score_bg(job["score"])
-        is_selected = (st.session_state.get("selected_job_title") == job["title"] and
-                       st.session_state.get("selected_job_company") == job["company"])
-        selected_border = "border-left: 4px solid #3fb950;" if is_selected else ""
-        selected_bg = "background: #0a2e1a;" if is_selected else ""
-        dipilih_badge = "<span style='background:#0a2e1a;color:#3fb950;border:1px solid #2ea043;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600;margin-left:6px;'>✓ Dipilih</span>" if is_selected else ""
-
-        # Progress bar dimasukkan ke dalam HTML card — hindari st.progress() di antara HTML & expander
-        card_border = "border-left: 4px solid #3fb950;" if is_selected else "border-left: 4px solid #e8274b;"
-        card_bg = "#0a2e1a" if is_selected else "#161b22"
-        progress_pct = int(sc * 100)
-        st.markdown(f"""
-        <div style='background:{card_bg};border:1px solid #2d2d2d;{card_border}border-radius:12px;
-        padding:16px 18px;margin-bottom:4px;'>
-            <div style='display:flex;justify-content:space-between;align-items:flex-start;gap:16px;'>
-                <div style='flex:1;min-width:0;'>
-                    <div style='display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;'>
-                        <span style='background:#e8274b;color:#fff;border-radius:6px;
-                        padding:3px 9px;font-size:11px;font-weight:600;flex-shrink:0;'>#{job['rank']}</span>
-                        <strong style='font-size:15px;color:#ffffff;'>{job['title']}</strong>
-                        {dipilih_badge}
-                    </div>
-                    <div style='font-size:12px;color:#8b949e;margin-bottom:10px;'>
-                        🏢 {job['company']} &nbsp;·&nbsp; 📍 {job['location']} &nbsp;·&nbsp; 🕒 {job['type']}
-                    </div>
-                    <div style='background:#21262d;border-radius:4px;height:5px;width:100%;'>
-                        <div style='background:{color};height:5px;border-radius:4px;width:{progress_pct}%;'></div>
-                    </div>
-                </div>
-                <div style='text-align:right;flex-shrink:0;'>
-                    <div style='font-size:22px;font-weight:700;color:{color};margin-bottom:2px;'>{sc*100:.0f}%</div>
-                    <div style='font-size:10px;font-weight:600;color:{color};
-                    background:{bg_col};border-radius:10px;padding:2px 8px;display:inline-block;'>{label}</div>
-                </div>
-            </div>
-        </div>""", unsafe_allow_html=True)
-        with st.expander(f"🔍 Lihat Detail — {job['title']}"):
-            d1, d2, d3, d4 = st.columns(4)
-            d1.markdown(f"""
-            <div style='background:#161b22;border:1px solid #2d2d2d;border-top:3px solid {color};
-            border-radius:10px;padding:12px;text-align:center;'>
-                <div style='font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;'>Skor Kecocokan</div>
-                <div style='font-size:26px;font-weight:700;color:{color};'>{sc*100:.0f}%</div>
-                <div style='font-size:11px;font-weight:600;color:{color};background:{bg_col};
-                border-radius:10px;padding:2px 8px;display:inline-block;margin-top:2px;'>{label}</div>
-            </div>""", unsafe_allow_html=True)
-            d2.markdown(f"""
-            <div style='background:#161b22;border:1px solid #2d2d2d;border-top:3px solid #58a6ff;
-            border-radius:10px;padding:12px;text-align:center;'>
-                <div style='font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;'>Perusahaan</div>
-                <div style='font-size:15px;font-weight:600;color:#e0eaf4;'>{job['company']}</div>
-                <div style='font-size:11px;color:#8b949e;margin-top:4px;'>📍 {job['location']}</div>
-            </div>""", unsafe_allow_html=True)
-            d3.markdown(f"""
-            <div style='background:#161b22;border:1px solid #2d2d2d;border-top:3px solid #d29922;
-            border-radius:10px;padding:12px;text-align:center;'>
-                <div style='font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;'>Tipe Pekerjaan</div>
-                <div style='font-size:15px;font-weight:600;color:#e0eaf4;'>{job['type']}</div>
-                <div style='font-size:11px;color:#8b949e;margin-top:4px;'>Ranking #{job['rank']} dari {k}</div>
-            </div>""", unsafe_allow_html=True)
-            d4.markdown(f"""
-            <div style='background:#161b22;border:1px solid #2d2d2d;border-top:3px solid #3fb950;
-            border-radius:10px;padding:12px;text-align:center;'>
-                <div style='font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;'>Estimasi Gaji</div>
-                <div style='font-size:13px;font-weight:600;color:#3fb950;'>{job['gaji']}</div>
-                <div style='margin-top:6px;'><a href="{job['link']}" target="_blank" style='font-size:11px;color:#58a6ff;text-decoration:none;'>🔗 Lihat Lowongan</a></div>
-            </div>""", unsafe_allow_html=True)
-
-            st.markdown("<br>", unsafe_allow_html=True)
-            skill_cols = st.columns(2)
-            matched   = st.session_state.skills_match[:5]
-            not_match = SKILLS_GAP
-            with skill_cols[0]:
-                st.markdown("<div style='font-size:12px;color:#3fb950;font-weight:600;margin-bottom:6px;'>✓ Skills yang Cocok</div>", unsafe_allow_html=True)
-                pills_match = "".join(f'<span class="pill-match">✓ {s}</span>' for s in matched)
-                match_content = pills_match if pills_match else '<span style="color:#8b949e;font-size:12px;">—</span>'
-                st.markdown(f"<div style='display:flex;flex-wrap:wrap;gap:6px;'>{match_content}</div>", unsafe_allow_html=True)
-            with skill_cols[1]:
-                st.markdown("<div style='font-size:12px;color:#ff7b7b;font-weight:600;margin-bottom:6px;'>✗ Skills yang Belum Dimiliki</div>", unsafe_allow_html=True)
-                pills_gap = "".join(f'<span class="pill-gap">✗ {s}</span>' for s in not_match)
-                gap_content = pills_gap if pills_gap else '<span style="color:#8b949e;font-size:12px;">—</span>'
-                st.markdown(f"<div style='display:flex;flex-wrap:wrap;gap:6px;'>{gap_content}</div>", unsafe_allow_html=True)
-
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown(f"""
-            <div style='background:linear-gradient(135deg,#1a0a0e,#2e0a18);
-            border:1px solid #e8274b;border-radius:10px;padding:12px;'>
-                <div style='font-size:11px;color:#e8274b;font-weight:600;margin-bottom:4px;'>💡 Saran untuk Posisi Ini</div>
-                <div style='font-size:12px;color:#c9d1d9;line-height:1.6;'>
-                    Tingkatkan skor kecocokan dengan mempelajari skill yang belum dimiliki.
-                    Lihat tab <strong style='color:#e8274b;'>Skill Gap & Saran</strong> untuk panduan belajar lengkap.
-                </div>
-            </div>""", unsafe_allow_html=True)
-
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button(f"✅ Pilih '{job['title']} @ {job['company']}' untuk Skill Insight", key=f"pick_{idx}", use_container_width=True, type="primary"):
-                st.session_state.selected_job_title   = job["title"]
-                st.session_state.selected_job_company = job["company"]
-                st.session_state.selected_job_score   = job["score"]
-                st.rerun()
->>>>>>> feature/frontend-ui
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -906,15 +814,7 @@ elif st.session_state.step == 3:
 # ──────────────────────────────────────────────────────────────
 elif st.session_state.step == 4:
     st.subheader("Skill Insight")
-<<<<<<< HEAD
-    
-    top_job = st.session_state.recommended_jobs[0] if st.session_state.recommended_jobs else None
-    
-    if top_job:
-        st.caption(f"Analisis berdasarkan posisi dengan skor tertinggi: **{top_job['title']} @ {top_job['company']} ({top_job['score']:.2f})**")
-=======
     st.caption(f"Analisis berdasarkan posisi yang Anda pilih: **{st.session_state.get('selected_job_title','—')} @ {st.session_state.get('selected_job_company','—')} ({st.session_state.get('selected_job_score', 0)*100:.0f}% — {score_label(st.session_state.get('selected_job_score', 0))})**")
->>>>>>> feature/frontend-ui
     st.markdown("<br>", unsafe_allow_html=True)
 
     skills_now = st.session_state.skills_match
@@ -923,90 +823,8 @@ elif st.session_state.step == 4:
     si1, si2, si3 = st.columns(3)
     selected_score = st.session_state.get('selected_job_score', 0.82)
     si1.markdown(card_metric("✅ Skills Dimiliki",   f"{len(skills_now)} skill", "Terdeteksi dari CV",         "#3fb950"), unsafe_allow_html=True)
-<<<<<<< HEAD
     si2.markdown(card_metric("⚠️ Skill Gap",         f"{len(skill_gap)} skill", "Perlu dipelajari",           "#d29922"), unsafe_allow_html=True)
-    si3.markdown(card_metric("🏆 Posisi Terbaik", top_job['title'] if top_job else "-",                      "Rekomendasi Utama","#e8274b"), unsafe_allow_html=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    tab_match, tab_gap, tab_radar = st.tabs([
-        "  ✅  Skill Match  ",
-        "  📚  Skill Gap & Saran  ",
-        "  📊  Radar Chart  "
-    ])
-
-    with tab_match:
-        st.markdown(f"#### Skills yang sudah Anda miliki")
-        st.caption(f"Skills ini cocok dengan kebutuhan posisi yang tersedia")
-        match_cols = st.columns(3)
-        for i, skill in enumerate(skills_now):
-            match_cols[i % 3].markdown(f"""
-            <div style='background:#0a2e1a;border:1px solid #2ea043;border-radius:10px;
-            padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:8px;'>
-                <span style='color:#3fb950;font-size:16px;'>✓</span>
-                <span style='color:#e0eaf4;font-size:13px;font-weight:500;'>{skill}</span>
-            </div>""", unsafe_allow_html=True)
-
-    with tab_gap:
-        st.markdown("#### Skills yang perlu ditingkatkan")
-        st.caption("Pelajari skill berikut untuk meningkatkan kecocokan Anda di pasar kerja")
-        for skill in skill_gap:
-            src, dur = get_learning_resource(skill)
-            with st.expander(f"📚  {skill}  —  Estimasi: {dur}"):
-                gc1, gc2 = st.columns([1, 2])
-                with gc1:
-                    st.markdown(f"""
-                    <div style='background:#2e0a0a;border:1px solid #e8274b;border-radius:10px;
-                    padding:14px;text-align:center;'>
-                        <div style='font-size:28px;margin-bottom:6px;'>⚠️</div>
-                        <div style='font-size:13px;font-weight:600;color:#ff7b7b;'>{skill}</div>
-                        <div style='font-size:11px;color:#8b949e;margin-top:4px;'>Belum terdeteksi</div>
-                    </div>""", unsafe_allow_html=True)
-                with gc2:
-                    st.markdown(f"""
-                    <div style='background:#161b22;border:1px solid #2d2d2d;border-radius:10px;padding:14px;'>
-                        <div style='font-size:11px;color:#e8274b;font-weight:600;margin-bottom:6px;'>💡 SUMBER BELAJAR</div>
-                        <div style='font-size:14px;color:#58a6ff;margin-bottom:10px;'>{src}</div>
-                        <div style='font-size:11px;color:#8b949e;margin-bottom:4px;'>⏱ ESTIMASI WAKTU</div>
-                        <div style='font-size:16px;font-weight:600;color:#d29922;'>{dur}</div>
-                    </div>""", unsafe_allow_html=True)
-
-    with tab_radar:
-        st.markdown("#### Radar Chart — Profil Anda vs Kebutuhan Lowongan Utama")
-        cats = ["Python & DS","Komunikasi","Data Handling","Analisis","Tech Skills"]
-        r_left, r_right = st.columns([3, 1])
-        with r_left:
-            fig = go.Figure()
-            fig.add_trace(go.Scatterpolar(
-                r=[85,90,70,80,60,85], theta=cats+[cats[0]], fill="toself", name="Profil Anda",
-                line_color="#e8274b", fillcolor="rgba(232,39,75,0.15)"))
-            fig.add_trace(go.Scatterpolar(
-                r=[90,85,80,85,80,90], theta=cats+[cats[0]], fill="toself", name="Persyaratan Lowongan",
-                line_color="#58a6ff", fillcolor="rgba(88,166,255,0.08)"))
-            fig.update_layout(
-                polar=dict(bgcolor="#161b22",
-                           radialaxis=dict(visible=True,range=[0,100],color="#8b949e",gridcolor="#2d2d2d"),
-                           angularaxis=dict(color="#c9d1d9")),
-                paper_bgcolor="#0d1117", plot_bgcolor="#0d1117", font=dict(color="#c9d1d9"),
-                legend=dict(bgcolor="#161b22",bordercolor="#2d2d2d",borderwidth=1,
-                            orientation="h",yanchor="bottom",y=-0.15),
-                margin=dict(t=20,b=40), height=380,
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        with r_right:
-            st.markdown("<br><br>", unsafe_allow_html=True)
-            radar_data = [
-                ("Python",85,90,"#d29922"),("Komunikasi",90,85,"#3fb950"),
-                ("Data",70,80,"#e8274b"),  ("Analisis",80,85,"#d29922"),
-                ("Tech",60,80,"#e8274b"),
-            ]
-            for cat, anda, req, color in radar_data:
-                gap = req - anda
-                icon = "✓" if gap <= 0 else "⚠"
-                gap_text = f"+{-gap}" if gap <= 0 else f"-{gap}"
-=======
-    si2.markdown(card_metric("⚠️ Skill Gap",         f"{len(SKILLS_GAP)} skill", "Perlu dipelajari",           "#d29922"), unsafe_allow_html=True)
-    si3.markdown(card_metric("🏆 Tingkat Kecocokan", f"{selected_score*100:.0f}%", "Terbaik dari 1.400 lowongan","#e8274b"), unsafe_allow_html=True)
+    si3.markdown(card_metric("🏆 Tingkat Kecocokan", f"{selected_score*100:.0f}%", "Terbaik dari lowongan diproses","#e8274b"), unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -1050,12 +868,11 @@ elif st.session_state.step == 4:
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("#### 📚 Skills yang perlu ditingkatkan")
     st.caption("Pelajari skill berikut untuk meningkatkan kecocokan Anda")
-    for skill in SKILLS_GAP:
-        src, dur = SKILL_LEARN[skill]
+    for skill in skill_gap:
+        src, dur = get_learning_resource(skill)
         with st.expander(f"📚  {skill}  —  Estimasi: {dur}"):
             gc1, gc2 = st.columns([1, 2])
             with gc1:
->>>>>>> feature/frontend-ui
                 st.markdown(f"""
                 <div style='background:#2e0a0a;border:1px solid #e8274b;border-radius:10px;
                 padding:14px;text-align:center;'>
@@ -1063,8 +880,6 @@ elif st.session_state.step == 4:
                     <div style='font-size:13px;font-weight:600;color:#ff7b7b;'>{skill}</div>
                     <div style='font-size:11px;color:#8b949e;margin-top:4px;'>Belum terdeteksi</div>
                 </div>""", unsafe_allow_html=True)
-<<<<<<< HEAD
-=======
             with gc2:
                 st.markdown(f"""
                 <div style='background:#161b22;border:1px solid #2d2d2d;border-radius:10px;padding:14px;'>
@@ -1087,7 +902,6 @@ elif st.session_state.step == 4:
             3. <strong style="color:#d29922;">Scala</strong> — Digunakan bersama Spark untuk big data engineering
         </div>
     </div>""", unsafe_allow_html=True)
->>>>>>> feature/frontend-ui
 
     st.markdown("<br>", unsafe_allow_html=True)
     bc, rc = st.columns(2)
@@ -1095,15 +909,9 @@ elif st.session_state.step == 4:
         st.session_state.step = 3
         st.rerun()
     if rc.button("🔄 Analisis CV Baru", type="primary", use_container_width=True):
-<<<<<<< HEAD
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
-        st.rerun()
-=======
         for key in ["step","model_choice","top_k","uploaded_file_bytes","uploaded_file_name",
                     "parse_failed","manual_skills","manual_edu","manual_exp","cv_info","skills_match",
                     "selected_job_title","selected_job_company","selected_job_score"]:
             if key in st.session_state:
                 del st.session_state[key]
         st.rerun()
->>>>>>> feature/frontend-ui
