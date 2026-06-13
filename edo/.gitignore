@@ -1,0 +1,7 @@
+# Ignore data folder containing crawled datasets
+data/
+
+# Ignore virtual environments
+.venv/
+__pycache__/
+*.pyc

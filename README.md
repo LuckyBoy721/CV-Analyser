@@ -1,76 +1,109 @@
-📢 PANDUAN PENGGUNAAN GITHUB KELOMPOK (CV ANALYSER) 📢
+# CVMatch AI - CV Analyzer & Job Recommendation System
 
-Halo rek! Repository GitHub untuk proyek Capstone CV Analyzer kita sudah siap dan terstruktur. 
-Untuk menghindari bentrok kode (merge conflict), kita akan menggunakan sistem 1 Repository dengan branch berbeda, DAN setiap orang memiliki FOLDER KHUSUS sesuai nama masing-masing di dalam proyek.
+CVMatch AI adalah aplikasi berbasis kecerdasan buatan (NLP & Machine Learning) untuk menganalisis dokumen CV (dalam format PDF) dan mencocokkannya dengan database lowongan pekerjaan (*Job Recommendations*) menggunakan berbagai model *semantic similarity*.
 
-Nama Repository: LuckyBoy721/CV-Analyser
-Branch Utama Kolaborasi: development
+Aplikasi ini menggabungkan pekerjaan dari berbagai pipeline modul:
+1. **`alin/`**: Pemrosesan & Parsing CV (Ekstraksi entitas teks & skill menggunakan NLP).
+2. **`edo/`**: Scraping data lowongan pekerjaan & pembersihan data (*Job Scraper & Preprocessor*).
+3. **`dimas/`**: Evaluasi model *Machine Learning* & implementasi algoritma kemiripan teks.
+4. **`sintya/`**: Antarmuka visual Dashboard Streamlit (Desain B & Desain D).
 
-⚠️ ATURAN EMAS KELOMPOK:
-1. JANGAN PERNAH push langsung ke branch 'main' atau 'development'.
-2. Kerja HANYA di dalam folder dengan nama kalian masing-masing.
-3. Penggabungan kode ke branch 'development' wajib lewat Pull Request (PR) di web GitHub.
+---
 
-------------------------------------------------------------------
+## 📁 Struktur Direktori Utama
 
-🛠️ LANGKAH AWAL (Hanya Dilakukan Sekali di Awal)
+```text
+CV-Analyser/
+├── alin/                      # Modul Ekstraksi & Parsing CV
+│   ├── cv_parser.py           # Script ekstraksi teks & entitas PDF
+│   └── cv_preprocessor.py     # Script pembersihan teks & translasi
+├── dimas/                     # Modul Machine Learning & Benchmark
+│   ├── data/database/         # Dataset benchmark model ML
+│   ├── models/                # Folder penyimpanan model offline (SBERT)
+│   ├── run_evaluation.sh      # Skrip benchmark model ML interaktif
+│   └── model_*.py             # Source code variasi algoritma ML
+├── edo/                       # Modul Scraping & Preprocessor Lowongan
+│   ├── data/                  # Dataset lowongan hasil scraping
+│   ├── job_scraper.py         # Script scraper lowongan Jobstreet
+│   └── run_job_analyzer.sh    # Script pipeline scraping-preprocessing
+├── sintya/                    # Antarmuka Dashboard Streamlit
+│   ├── desain_B.py            # Desain UI Terang & Bersih
+│   └── desain_D.py            # Desain UI Elegan Merah-Gelap
+├── run_app.sh                 # [Utama] Script sekali klik untuk menjalankan UI
+└── README.md                  # Dokumentasi proyek ini
+```
 
-Buka terminal (Linux/Mac) atau Git Bash/Command Prompt (Windows) kalian, lalu jalankan perintah ini berurutan:
+---
 
-1. Clone repository ke komputer kalian:
-   git clone https://github.com/LuckyBoy721/CV-Analyser.git
-   cd CV-Analyser
+## ⚙️ Persyaratan Sistem & Instalasi
 
-2. Ambil semua branch dari GitHub dan pindah ke branch development:
-   git fetch origin
-   git checkout development
+Proyek ini menggunakan virtual environment Python dan direkomendasikan menggunakan `uv` untuk instalasi dependensi yang super cepat.
 
-3. Buat branch fitur baru SESUAI ROLE kalian masing-masing:
-   
-   • Alin (NLP Engineer):
-     git checkout -b feature/nlp-processing
-   
-   • Dimas (ML Engineer):
-     git checkout -b feature/ml-modeling
-   
-   • Edo (Data Engineer):
-     git checkout -b feature/data-pipeline
-   
-   • Sintya (Frontend Engineer):
-     git checkout -b feature/frontend-ui
+### 1. Kloning Repositori & Masuk ke Folder
+```bash
+git clone https://github.com/LuckyBoy721/CV-Analyser.git
+cd CV-Analyser
+```
 
-------------------------------------------------------------------
+### 2. Membuat Virtual Environment (Rekomendasi)
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
 
-💻 ALUR KERJA HARIAN (Setiap Kali Kalian Coding)
+### 3. Menginstal Dependensi
+Gunakan `uv` untuk menginstal seluruh paket dengan cepat. Jika belum memiliki `uv`, silakan pasang terlebih dahulu (`pip install uv`).
 
-1. Pastikan kalian berada di branch fitur kalian masing-masing (bukan development/main).
-2. Buka teks editor (VS Code, dll) di folder proyek.
-3. Koding HANYA di dalam folder nama kalian sendiri:
-   Contoh: Alin hanya utak-atik file di folder /alin, Sintya di folder /sintya, dst.
+```bash
+uv pip install -r requirements.txt
+```
+*Catatan: Jika file `requirements.txt` belum tersedia, instal paket utama berikut:*
+```bash
+uv pip install streamlit pandas plotly scikit-learn sentence-transformers torchvision requests beautifulsoup4 deep-translator nltk tqdm matplotlib
+```
 
-4. Jika sudah selesai koding dan ingin menyimpan progres ke GitHub:
-   git add .
-   git commit -m "feat: [tulis deskripsi singkat fitur yang kalian buat]"
-   git push -u origin [nama-branch-fitur-kalian]
-   
-   (Contoh push Sintya: git push -u origin feature/frontend-ui)
+---
 
-5. Setelah push sukses, buka web GitHub (https://github.com/LuckyBoy721/CV-Analyser).
-6. Klik tombol hijau "Compare & pull request".
-7. PENTING: Pastikan arah panah penggabungannya adalah:
-   base: development  <--  compare: [branch-fitur-kalian]
-8. Klik "Create pull request". Nanti kita review bareng-bareng sebelum di-merge ke development.
+## 🚀 Cara Menjalankan Aplikasi
 
-------------------------------------------------------------------
+### A. Aplikasi Utama (Dashboard Interaktif)
+Kami menyediakan skrip launcher `./run_app.sh` untuk memudahkan pemilihan tampilan.
 
-🔄 CARA MENGAMBIL UPDATE KODE TERBARU DARI TEMAN (Lakukan Tiap Hari)
+1. Berikan izin eksekusi pada skrip (jika belum):
+   ```bash
+   chmod +x run_app.sh
+   ```
+2. Jalankan skrip:
+   ```bash
+   ./run_app.sh
+   ```
+3. Pilih desain antarmuka di terminal:
+   * Ketik **`1`** untuk membuka **Desain B** (Tampilan Terang & Bersih).
+   * Ketik **`2`** untuk membuka **Desain D** (Tampilan Gelap Elegan dengan nuansa Merah).
+4. Browser Anda akan terbuka secara otomatis di alamat `http://localhost:8501` atau `http://localhost:8502`.
 
-Agar folder nama teman kalian muncul atau terupdate di laptop kalian setelah kodenya di-merge, lakukan ini sebelum mulai koding:
+### B. Modul Evaluasi & Benchmark ML (Modul `dimas/`)
+Untuk menjalankan benchmarking dan mengukur presisi antar model (`TF-IDF`, `TF-IDF + SVD`, `Embedding SBERT`):
+```bash
+cd dimas
+chmod +x run_evaluation.sh
+./run_evaluation.sh
+```
 
-git checkout development
-git pull origin development
-git checkout [branch-fitur-kalian]
-git merge development
+### C. Modul Scraping Lowongan Baru (Modul `edo/`)
+Untuk memperbarui data lowongan pekerjaan menggunakan scraping terbaru:
+```bash
+cd edo
+chmod +x run_job_analyzer.sh
+./run_job_analyzer.sh
+```
+Hasil scraping akan otomatis diperbarui ke database `edo/data/data_clean.csv` yang langsung digunakan sebagai basis data rekomendasi di aplikasi utama.
 
-------------------------------------------------------------------
-Jika ada kendala saat instalasi atau eror Git (terutama masalah pengisian token/password GitHub), langsung chat di grup ini ya! Semangat rek proyekan kita! 🚀
+---
+
+## 🧠 Model Rekomendasi yang Tersedia
+Aplikasi ini menyediakan 3 model pembanding kemiripan teks:
+1. **TF-IDF (Baseline)**: Pencocokan berbasis kata kunci literal (cepat, efisien).
+2. **TF-IDF + SVD**: Representasi dimensi laten untuk menemukan pola hubungan kata yang tersembunyi.
+3. **Sentence Embedding (SBERT)**: Memahami makna semantik bahasa secara mendalam (misal: "ML" dicocokkan dengan "Machine Learning" secara otomatis). Model ini disimpan secara offline di folder lokal `dimas/models/all-MiniLM-L6-v2` setelah diunduh pertama kali.
+

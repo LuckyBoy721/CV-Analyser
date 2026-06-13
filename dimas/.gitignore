@@ -1,0 +1,9 @@
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore local data directory containing datasets and prediction results
+data/
+
+# Ignore python cache
+__pycache__/
+*.pyc
