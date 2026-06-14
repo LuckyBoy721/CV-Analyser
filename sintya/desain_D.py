@@ -89,39 +89,95 @@ def load_logo():
 
 LOGO_B64 = load_logo()
 
+
+# ══════════════════════════════════════════════════════════════
+# THEME CONFIG
+# ══════════════════════════════════════════════════════════════
+st.sidebar.markdown("### ⚙️ Pengaturan Tampilan")
+is_light = st.sidebar.toggle("☀️ Mode Terang", value=False)
+
+if is_light:
+    theme_css = """
+    :root {
+        --bg-main: #f6f8fa;
+        --card-bg: #ffffff;
+        --border: #d0d7de;
+        --border-light: #eaeef2;
+        --text-main: #24292f;
+        --text-head: #1F2328;
+        --text-muted: #57606a;
+        --success-bg: #dafbe1;
+        --success-text: #1a7f37;
+        --success-border: #4ac26b;
+        --warn-bg: #fff8c5;
+        --warn-text: #bf8700;
+        --error-bg: #ffebe9;
+        --error-text: #cf222e;
+        --pill-match-bg: #dafbe1;
+        --info-bg: #ddf4ff;
+        --info-border: #54aeff;
+        --btn-disabled-text: #8c959f;
+    }
+    """
+else:
+    theme_css = """
+    :root {
+        --bg-main: #0d1117;
+        --card-bg: #161b22;
+        --border: #2d2d2d;
+        --border-light: #21262d;
+        --text-main: #c9d1d9;
+        --text-head: #ffffff;
+        --text-muted: #8b949e;
+        --success-bg: #0a2e1a;
+        --success-text: #3fb950;
+        --success-border: #2ea043;
+        --warn-bg: #2e1f0a;
+        --warn-text: #d29922;
+        --error-bg: #2e0a0a;
+        --error-text: #ff7b7b;
+        --pill-match-bg: #1a2e1a;
+        --info-bg: #1a1f3a;
+        --info-border: #3b5bdb;
+        --btn-disabled-text: #4a4a4a;
+    }
+    """
+
+st.markdown(f"<style>{theme_css}</style>", unsafe_allow_html=True)
+
 # ══════════════════════════════════════════════════════════════
 # GLOBAL CSS
 # ══════════════════════════════════════════════════════════════
 st.markdown("""
 <style>
-.stApp                          { background-color: #0d1117; color: #c9d1d9; }
-[data-testid="stHeader"]        { background-color: #0d1117; border-bottom: 1px solid #21262d; }
-section[data-testid="stMain"]   { background-color: #0d1117; }
+.stApp                          { background-color: var(--bg-main); color: var(--text-main); }
+[data-testid="stHeader"]        { background-color: var(--bg-main); border-bottom: 1px solid var(--border-light); }
+section[data-testid="stMain"]   { background-color: var(--bg-main); }
 .block-container                { max-width: 100% !important; padding: 3.2rem 3rem 1.5rem 3rem !important; }
-h1,h2,h3,h4    { color: #ffffff !important; }
-p,span,div      { color: #c9d1d9; }
+h1,h2,h3,h4    { color: var(--text-head) !important; }
+p,span,div      { color: var(--text-main); }
 
 [data-testid="metric-container"] {
-    background: #161b22 !important; border: 1px solid #2d2d2d !important;
+    background: var(--card-bg) !important; border: 1px solid var(--border) !important;
     border-radius: 12px !important; padding: 16px !important;
     border-top: 3px solid #e8274b !important;
 }
 [data-testid="stMetricValue"] { color: #e8274b !important; font-size: 28px !important; font-weight: 700 !important; }
-[data-testid="stMetricLabel"] { color: #8b949e !important; }
+[data-testid="stMetricLabel"] { color: var(--text-muted) !important; }
 [data-testid="stMetricDelta"] { color: #ff6b8a !important; }
 
 .stProgress > div > div > div > div { background: linear-gradient(90deg,#e8274b,#ff6b8a) !important; }
-[data-testid="stProgressBar"]        { background-color: #21262d !important; }
+[data-testid="stProgressBar"]        { background-color: var(--border-light) !important; }
 
 .stButton > button {
     background-color: transparent; color: #e8274b;
     border: 1.5px solid #e8274b; border-radius: 8px;
     font-weight: 500; transition: all 0.2s ease;
 }
-.stButton > button:hover { background-color: #e8274b; color: #ffffff; }
+.stButton > button:hover { background-color: #e8274b; color: var(--text-head); }
 .stButton > button[kind="primary"] {
     background: linear-gradient(135deg, #e8274b, #c41f3b);
-    border-color: #e8274b; color: #fff; font-weight: 600;
+    border-color: #e8274b; color: var(--text-head); font-weight: 600;
 }
 .stButton > button[kind="primary"]:hover {
     background: linear-gradient(135deg, #ff4d6d, #e8274b);
@@ -129,52 +185,52 @@ p,span,div      { color: #c9d1d9; }
     box-shadow: 0 4px 12px rgba(232,39,75,0.4);
 }
 .stButton > button:disabled {
-    background-color: #161b22 !important; color: #4a4a4a !important;
-    border-color: #2d2d2d !important; cursor: not-allowed !important;
+    background-color: var(--card-bg) !important; color: var(--btn-disabled-text) !important;
+    border-color: var(--border) !important; cursor: not-allowed !important;
 }
 
 [data-testid="stFileUploader"] {
-    background: #161b22; border: 2px dashed #e8274b;
+    background: var(--card-bg); border: 2px dashed #e8274b;
     border-radius: 12px; opacity: 0.9;
 }
-[data-testid="stFileUploader"] label { color: #8b949e !important; }
+[data-testid="stFileUploader"] label { color: var(--text-muted) !important; }
 
 .stTextArea textarea, .stTextInput input {
-    background: #161b22 !important; color: #e0eaf4 !important;
-    border: 1px solid #2d2d2d !important; border-radius: 8px !important;
+    background: var(--card-bg) !important; color: var(--text-main) !important;
+    border: 1px solid var(--border) !important; border-radius: 8px !important;
 }
 .stTextArea textarea:focus, .stTextInput input:focus { border-color: #e8274b !important; }
 
 .stTabs [data-baseweb="tab-list"] {
-    background: #161b22; border-radius: 10px;
+    background: var(--card-bg); border-radius: 10px;
     padding: 4px; gap: 6px !important;
 }
 .stTabs [data-baseweb="tab"] {
-    border-radius: 8px; color: #8b949e; font-weight: 500;
+    border-radius: 8px; color: var(--text-muted); font-weight: 500;
     margin-right: 4px !important; padding-left: 16px !important; padding-right: 16px !important;
 }
-.stTabs [aria-selected="true"] { background: #e8274b !important; color: #fff !important; }
+.stTabs [aria-selected="true"] { background: #e8274b !important; color: var(--text-head) !important; }
 
-.streamlit-expanderHeader  { background: #161b22 !important; color: #e0eaf4 !important; border-radius: 10px !important; border-left: 3px solid #e8274b !important; }
-.streamlit-expanderContent { background: #0d1117 !important; border: 1px solid #21262d !important; border-radius: 0 0 10px 10px !important; }
+.streamlit-expanderHeader  { background: var(--card-bg) !important; color: var(--text-main) !important; border-radius: 10px !important; border-left: 3px solid #e8274b !important; }
+.streamlit-expanderContent { background: var(--bg-main) !important; border: 1px solid var(--border-light) !important; border-radius: 0 0 10px 10px !important; }
 
-.stSuccess { background: #0a2e1a !important; border-color: #2ea043 !important; }
-.stInfo    { background: #1a1f3a !important; border-color: #3b5bdb !important; }
-.stWarning { background: #2e1f0a !important; border-color: #e8274b !important; }
-.stError   { background: #2e0a0a !important; border-color: #e8274b !important; }
+.stSuccess { background: var(--success-bg) !important; border-color: var(--success-border) !important; }
+.stInfo    { background: var(--info-bg) !important; border-color: var(--info-border) !important; }
+.stWarning { background: var(--warn-bg) !important; border-color: #e8274b !important; }
+.stError   { background: var(--error-bg) !important; border-color: #e8274b !important; }
 
 [data-testid="stSlider"] { color: #e8274b !important; }
 .stSlider > div > div > div > div { background: #e8274b !important; }
-[data-testid="stDataFrame"] { background: #161b22 !important; }
-hr { border-color: #2d2d2d !important; margin: 0.8rem 0 !important; }
+[data-testid="stDataFrame"] { background: var(--card-bg) !important; }
+hr { border-color: var(--border) !important; margin: 0.8rem 0 !important; }
 
 .pill-match {
-    display: inline-block; background: #1a2e1a; color: #3fb950;
-    border: 1px solid #2ea043; border-radius: 20px;
+    display: inline-block; background: var(--pill-match-bg); color: var(--success-text);
+    border: 1px solid var(--success-border); border-radius: 20px;
     padding: 4px 13px; margin: 3px; font-size: 13px; font-weight: 500;
 }
 .pill-gap {
-    display: inline-block; background: #2e0a0a; color: #ff7b7b;
+    display: inline-block; background: var(--error-bg); color: var(--error-text);
     border: 1px solid #e8274b; border-radius: 20px;
     padding: 4px 13px; margin: 3px; font-size: 13px; font-weight: 500;
 }
@@ -187,14 +243,14 @@ hr { border-color: #2d2d2d !important; margin: 0.8rem 0 !important; }
 }
 .info-chip-ok {
     display: inline-flex; align-items: center; gap: 6px;
-    background: #0a2e1a; color: #3fb950;
-    border: 1px solid #2ea043; border-radius: 8px;
+    background: var(--success-bg); color: var(--success-text);
+    border: 1px solid var(--success-border); border-radius: 8px;
     padding: 6px 12px; font-size: 13px; margin-bottom: 6px;
 }
 .info-chip-warn {
     display: inline-flex; align-items: center; gap: 6px;
-    background: #2e1f0a; color: #d29922;
-    border: 1px solid #d29922; border-radius: 8px;
+    background: var(--warn-bg); color: var(--warn-text);
+    border: 1px solid var(--warn-text); border-radius: 8px;
     padding: 6px 12px; font-size: 13px; margin-bottom: 6px;
 }
 
@@ -203,10 +259,10 @@ hr { border-color: #2d2d2d !important; margin: 0.8rem 0 !important; }
 """, unsafe_allow_html=True)
 
 def score_color(s):
-    if s >= 0.75: return '#3fb950'
+    if s >= 0.75: return 'var(--success-text)'
     if s >= 0.60: return '#58a6ff'
-    if s >= 0.45: return '#d29922'
-    return '#8b949e'
+    if s >= 0.45: return 'var(--warn-text)'
+    return 'var(--text-muted)'
 
 def score_label(s):
     if s >= 0.75: return 'Sangat Cocok'
@@ -215,9 +271,9 @@ def score_label(s):
     return 'Kurang Cocok'
 
 def score_bg(s):
-    if s >= 0.75: return '#0a2e1a'
+    if s >= 0.75: return 'var(--success-bg)'
     if s >= 0.60: return '#0d1f3c'
-    if s >= 0.45: return '#2e1f0a'
+    if s >= 0.45: return 'var(--warn-bg)'
     return '#1a1a1a'
 
 def get_learning_resource(skill):
@@ -234,10 +290,10 @@ def get_learning_resource(skill):
     return res.get(skill.title(), ('YouTube, Udemy', '1-3 bulan'))
 
 def score_color(s):
-    if s >= 0.75: return "#3fb950"
-    if s >= 0.60: return "#58a6ff"
-    if s >= 0.45: return "#d29922"
-    return "#8b949e"
+    if s >= 0.75: return "var(--success-text)"
+    if s >= 0.60: return "var(--info-border)"
+    if s >= 0.45: return "var(--warn-text)"
+    return "var(--text-muted)"
 
 def score_label(s):
     if s >= 0.75: return "Sangat Cocok"
@@ -246,10 +302,10 @@ def score_label(s):
     return "Kurang Cocok"
 
 def score_bg(s):
-    if s >= 0.75: return "#0a2e1a"
-    if s >= 0.60: return "#0d1f3c"
-    if s >= 0.45: return "#2e1f0a"
-    return "#1a1a1a"
+    if s >= 0.75: return "var(--success-bg)"
+    if s >= 0.60: return "var(--info-bg)"
+    if s >= 0.45: return "var(--warn-bg)"
+    return "var(--border-light)"
 
 def get_learning_resource(skill):
     res = {
@@ -300,14 +356,14 @@ def render_navbar():
         logo_html = '<div style="font-size:28px;">🎯</div>'
 
     st.markdown(f"""
-    <div style="background:#161b22;border-bottom:2px solid #e8274b;
+    <div style="background:var(--card-bg);border-bottom:2px solid #e8274b;
     padding:10px 0;display:flex;align-items:center;gap:14px;margin-bottom:1.5rem;">
         {logo_html}
         <div>
-            <div style="font-size:22px;font-weight:700;color:#ffffff;line-height:1.1;">
+            <div style="font-size:22px;font-weight:700;color:var(--text-head);line-height:1.1;">
                 JobMatch <span style="color:#e8274b;">AI</span>
             </div>
-            <div style="font-size:12px;color:#8b949e;">
+            <div style="font-size:12px;color:var(--text-muted);">
                 AI-Based CV Analyzer &amp; Job Recommendation System
             </div>
         </div>
@@ -322,14 +378,14 @@ def render_steps(current):
         n = i + 1
         col_idx = i * 2
         if n < current:
-            cbg,cfg,lc,sym = "#e8274b","#fff","#ff6b8a","✓"
+            cbg,cfg,lc,sym = "#e8274b","var(--text-head)","#ff6b8a","✓"
             border = ""
         elif n == current:
             cbg,cfg,lc,sym = "#1a0a0e","#e8274b","#e8274b",str(n)
             border = "border:2px solid #e8274b;"
         else:
-            cbg,cfg,lc,sym = "#161b22","#4a4a4a","#4a4a4a",str(n)
-            border = "border:1px solid #2d2d2d;"
+            cbg,cfg,lc,sym = "var(--card-bg)","var(--btn-disabled-text)","var(--btn-disabled-text)",str(n)
+            border = "border:1px solid var(--border);"
         fw = "600" if n == current else "400"
         cols[col_idx].markdown(f"""
         <div style='text-align:center;padding:4px 0;'>
@@ -339,7 +395,7 @@ def render_steps(current):
           <div style='font-size:11px;color:{lc};margin-top:6px;font-weight:{fw};'>{label}</div>
         </div>""", unsafe_allow_html=True)
         if i < len(steps) - 1:
-            lc2 = "#e8274b" if (i+1) < current else "#2d2d2d"
+            lc2 = "#e8274b" if (i+1) < current else "var(--border)"
             cols[col_idx+1].markdown(
                 f"<div style='height:2px;background:{lc2};margin-top:20px;border-radius:2px;'></div>",
                 unsafe_allow_html=True)
@@ -348,9 +404,9 @@ def render_steps(current):
 
 def card_metric(label, value, sub="", color="#e8274b"):
     return f"""
-    <div style='background:#161b22;border:1px solid #2d2d2d;border-top:3px solid {color};
+    <div style='background:var(--card-bg);border:1px solid var(--border);border-top:3px solid {color};
     border-radius:12px;padding:16px;text-align:center;height:100%;'>
-        <div style='font-size:11px;color:#8b949e;margin-bottom:4px;text-transform:uppercase;
+        <div style='font-size:11px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;
         letter-spacing:0.06em;'>{label}</div>
         <div style='font-size:28px;font-weight:700;color:{color};'>{value}</div>
         <div style='font-size:11px;color:#556677;margin-top:2px;'>{sub}</div>
@@ -361,25 +417,26 @@ def render_cv_detail():
     container = st.container(border=True)
     with container:
         fields = [
-            ("NAMA LENGKAP", cv.get("nama","—") or "—",      "#e0eaf4", "14px"),
-            ("EMAIL",        cv.get("email","—") or "—",     "#e0eaf4", "14px"),
-            ("NOMOR HP",     cv.get("phone","—") or "—",     "#e0eaf4", "14px"),
-            ("RINGKASAN",    (cv.get("ringkasan","—") or "—")[:150] + "...", "#c9d1d9", "13px"),
-            ("PENDIDIKAN",   cv.get("pendidikan","—") or "—","#e0eaf4", "14px"),
-            ("PENGALAMAN",   cv.get("pengalaman","—") or "—","#e0eaf4", "14px"),
+            ("NAMA LENGKAP", cv.get("nama","—") or "—",      "var(--text-main)", "14px"),
+            ("EMAIL",        cv.get("email","—") or "—",     "var(--text-main)", "14px"),
+            ("NOMOR HP",     cv.get("phone","—") or "—",     "var(--text-main)", "14px"),
+            ("RINGKASAN",    (cv.get("ringkasan","—") or "—")[:150] + "...", "var(--text-main)", "13px"),
+            ("PENDIDIKAN",   cv.get("pendidikan","—") or "—","var(--text-main)", "14px"),
+            ("PENGALAMAN",   cv.get("pengalaman","—") or "—","var(--text-main)", "14px"),
         ]
         for label, val, color, size in fields:
-            st.markdown(f"<div style='font-size:11px;color:#8b949e;margin-bottom:2px;'>{label}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:11px;color:var(--text-muted);margin-bottom:2px;'>{label}</div>", unsafe_allow_html=True)
             st.markdown(f"<div style='font-size:{size};color:{color};margin-bottom:10px;font-weight:500;'>{val}</div>", unsafe_allow_html=True)
 
-        st.markdown("<div style='font-size:11px;color:#8b949e;margin-bottom:2px;'>BAHASA CV</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:11px;color:var(--text-muted);margin-bottom:2px;'>BAHASA CV</div>", unsafe_allow_html=True)
         st.markdown(f"<div style='font-size:13px;color:#58a6ff;margin-bottom:10px;'>{cv.get('bahasa','—')}</div>", unsafe_allow_html=True)
 
 
-def plotly_dark():
+def get_plotly_layout():
     return dict(
-        paper_bgcolor="#161b22", plot_bgcolor="#161b22",
-        font=dict(color="#c9d1d9", size=12),
+        paper_bgcolor="#ffffff" if is_light else "#161b22", 
+        plot_bgcolor="#ffffff" if is_light else "#161b22",
+        font=dict(color="#24292f" if is_light else "#c9d1d9", size=12),
         margin=dict(t=36, b=12, l=12, r=12),
     )
 
@@ -464,7 +521,7 @@ if st.session_state.step == 1:
                 st.markdown("**🏷️ Skills Terdeteksi**")
                 pills = "".join(f'<span class="pill-match">✓ {s}</span>' for s in st.session_state.skills_match)
                 st.markdown(
-                    f"<div style='background:#161b22;border:1px solid #2d2d2d;"
+                    f"<div style='background:var(--card-bg);border:1px solid var(--border);"
                     f"border-radius:10px;padding:14px;'>{pills}</div>",
                     unsafe_allow_html=True
                 )
@@ -509,12 +566,12 @@ if st.session_state.step == 1:
         for icon, title, desc in steps_info:
             st.markdown(f"""
             <div style='display:flex;align-items:flex-start;gap:12px;
-            background:#161b22;border:1px solid #2d2d2d;border-radius:10px;
+            background:var(--card-bg);border:1px solid var(--border);border-radius:10px;
             padding:12px 14px;margin-bottom:8px;'>
                 <div style='font-size:22px;flex-shrink:0;'>{icon}</div>
                 <div>
-                    <div style='font-size:13px;font-weight:600;color:#ffffff;margin-bottom:2px;'>{title}</div>
-                    <div style='font-size:12px;color:#8b949e;'>{desc}</div>
+                    <div style='font-size:13px;font-weight:600;color:var(--text-head);margin-bottom:2px;'>{title}</div>
+                    <div style='font-size:12px;color:var(--text-muted);'>{desc}</div>
                 </div>
             </div>""", unsafe_allow_html=True)
 
@@ -533,7 +590,7 @@ elif st.session_state.step == 2:
         {
             "name":"TF-IDF","icon":"📝",
             "desc":"Keyword-based matching. Cepat, ringan, dan mudah diinterpretasi. Ideal sebagai baseline komparasi.",
-            "badge":"BASELINE","badge_color":"#8b949e","badge_bg":"#21262d",
+            "badge":"BASELINE","badge_color":"var(--text-muted)","badge_bg":"var(--border-light)",
             "pros":["Sangat cepat","Mudah diinterpretasi"],
             "cons":["Tidak memahami sinonim","Kurang kontekstual"],
         },
@@ -547,7 +604,7 @@ elif st.session_state.step == 2:
         {
             "name":"Embedding","icon":"🧠",
             "desc":"Sentence-BERT semantic similarity. Paling akurat dan kontekstual — memahami makna sebenarnya.",
-            "badge":"⭐ TERBAIK","badge_color":"#3fb950","badge_bg":"#0a2e1a",
+            "badge":"⭐ TERBAIK","badge_color":"var(--success-text)","badge_bg":"var(--success-bg)",
             "pros":["Memahami semantik & sinonim","Akurasi tertinggi"],
             "cons":["Lebih berat secara komputasi"],
         },
@@ -556,21 +613,21 @@ elif st.session_state.step == 2:
     model_cols = st.columns(3, gap="medium")
     for col, m in zip(model_cols, MODELS):
         selected = st.session_state.model_choice == m["name"]
-        border   = "2px solid #e8274b" if selected else "1px solid #2d2d2d"
-        bg       = "#1a0a0e"           if selected else "#161b22"
+        border   = "2px solid #e8274b" if selected else "1px solid var(--border)"
+        bg       = "#1a0a0e"           if selected else "var(--card-bg)"
         glow     = "box-shadow:0 0 16px rgba(232,39,75,0.25);" if selected else ""
-        pros_html = "".join(f"<div style='font-size:11px;color:#3fb950;margin-bottom:3px;'>✓ {p}</div>" for p in m["pros"])
-        cons_html = "".join(f"<div style='font-size:11px;color:#8b949e;margin-bottom:3px;'>• {c}</div>" for c in m["cons"])
+        pros_html = "".join(f"<div style='font-size:11px;color:var(--success-text);margin-bottom:3px;'>✓ {p}</div>" for p in m["pros"])
+        cons_html = "".join(f"<div style='font-size:11px;color:var(--text-muted);margin-bottom:3px;'>• {c}</div>" for c in m["cons"])
 
         col.markdown(f"""
         <div style='border:{border};background:{bg};border-radius:14px;
         padding:24px 16px;text-align:center;{glow}margin-bottom:10px;
         min-height:320px;display:flex;flex-direction:column;justify-content:flex-start;'>
             <div style='font-size:36px;margin-bottom:8px;'>{m["icon"]}</div>
-            <div style='font-size:16px;font-weight:700;color:#ffffff;margin-bottom:6px;'>{m["name"]}</div>
+            <div style='font-size:16px;font-weight:700;color:var(--text-head);margin-bottom:6px;'>{m["name"]}</div>
             <span style='background:{m["badge_bg"]};color:{m["badge_color"]};
             border-radius:20px;padding:3px 12px;font-size:11px;font-weight:600;'>{m["badge"]}</span>
-            <div style='font-size:12px;color:#8b949e;margin:12px 0 10px;line-height:1.55;'>{m["desc"]}</div>
+            <div style='font-size:12px;color:var(--text-muted);margin:12px 0 10px;line-height:1.55;'>{m["desc"]}</div>
             <div style='text-align:left;'>{pros_html}{cons_html}</div>
         </div>""", unsafe_allow_html=True)
 
@@ -653,8 +710,8 @@ elif st.session_state.step == 3:
     kc1, kc2, kc3, kc4 = st.columns(4)
     kc1.markdown(card_metric("🏆 Top Match",  f"{top_score:.2f}",  "Skor tertinggi CV ini",      "#e8274b"), unsafe_allow_html=True)
     kc2.markdown(card_metric("📂 Dianalisis", f"{len(df_jobs)}", "Total Lowongan diproses",    "#58a6ff"), unsafe_allow_html=True)
-    kc3.markdown(card_metric("🔑 Skills",     f"{len(st.session_state.skills_match)}", "skill terdeteksi dari CV",   "#3fb950"), unsafe_allow_html=True)
-    kc4.markdown(card_metric("⚠️ Skill Gap",  f"{len(st.session_state.get('skill_gap', []))}", "skill perlu ditingkatkan",   "#d29922"), unsafe_allow_html=True)
+    kc3.markdown(card_metric("🔑 Skills",     f"{len(st.session_state.skills_match)}", "skill terdeteksi dari CV",   "var(--success-text)"), unsafe_allow_html=True)
+    kc4.markdown(card_metric("⚠️ Skill Gap",  f"{len(st.session_state.get('skill_gap', []))}", "skill perlu ditingkatkan",   "var(--warn-text)"), unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -663,10 +720,10 @@ elif st.session_state.step == 3:
     with tab_list:
         st.markdown("""
         <div style='display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px;'>
-            <span style='font-size:12px;color:#3fb950;'>● ≥ 75% — Sangat Cocok</span>
+            <span style='font-size:12px;color:var(--success-text);'>● ≥ 75% — Sangat Cocok</span>
             <span style='font-size:12px;color:#58a6ff;'>● 60–74% — Cocok</span>
-            <span style='font-size:12px;color:#d29922;'>● 45–59% — Cukup</span>
-            <span style='font-size:12px;color:#8b949e;'>● &lt; 45% — Kurang</span>
+            <span style='font-size:12px;color:var(--warn-text);'>● 45–59% — Cukup</span>
+            <span style='font-size:12px;color:var(--text-muted);'>● &lt; 45% — Kurang</span>
         </div>""", unsafe_allow_html=True)
 
         col_left, col_right = st.columns(2, gap='medium')
@@ -675,28 +732,28 @@ elif st.session_state.step == 3:
             sc, color, label, bg_col = job["score"], score_color(job["score"]), score_label(job["score"]), score_bg(job["score"])
             is_selected = (st.session_state.get("selected_job_title") == job["title"] and
                            st.session_state.get("selected_job_company") == job["company"])
-            selected_border = "border-left: 4px solid #3fb950;" if is_selected else ""
-            selected_bg = "background: #0a2e1a;" if is_selected else ""
-            dipilih_badge = "<span style='background:#0a2e1a;color:#3fb950;border:1px solid #2ea043;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600;margin-left:6px;'>✓ Dipilih</span>" if is_selected else ""
+            selected_border = "border-left: 4px solid var(--success-text);" if is_selected else ""
+            selected_bg = "background: var(--success-bg);" if is_selected else ""
+            dipilih_badge = "<span style='background:var(--success-bg);color:var(--success-text);border:1px solid var(--success-border);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600;margin-left:6px;'>✓ Dipilih</span>" if is_selected else ""
 
             # Progress bar dimasukkan ke dalam HTML card — hindari st.progress() di antara HTML & expander
-            card_border = "border-left: 4px solid #3fb950;" if is_selected else "border-left: 4px solid #e8274b;"
-            card_bg = "#0a2e1a" if is_selected else "#161b22"
+            card_border = "border-left: 4px solid var(--success-text);" if is_selected else "border-left: 4px solid #e8274b;"
+            card_bg = "var(--success-bg)" if is_selected else "var(--card-bg)"
             progress_pct = int(sc * 100)
             st.markdown(f"""
-            <div style='background:{card_bg};border:1px solid #2d2d2d;{card_border}border-radius:12px;
+            <div style='background:{card_bg};border:1px solid var(--border);{card_border}border-radius:12px;
             padding:16px 18px;margin-bottom:4px;'>
                 <div style='display:flex;justify-content:space-between;align-items:flex-start;gap:16px;'>
                     <div style='flex:1;min-width:0;'>
                         <div style='display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;'>
-                            <span style='background:#e8274b;color:#fff;border-radius:6px;
+                            <span style='background:#e8274b;color:var(--text-head);border-radius:6px;
                             padding:3px 9px;font-size:11px;font-weight:600;flex-shrink:0;'>#{job['rank']}</span>
-                            <strong style='font-size:15px;color:#ffffff;'>{job['title']}</strong>{dipilih_badge}
+                            <strong style='font-size:15px;color:var(--text-head);'>{job['title']}</strong>{dipilih_badge}
                         </div>
-                        <div style='font-size:12px;color:#8b949e;margin-bottom:10px;'>
+                        <div style='font-size:12px;color:var(--text-muted);margin-bottom:10px;'>
                             🏢 {job['company']} &nbsp;·&nbsp; 📍 {job['location']} &nbsp;·&nbsp; 🕒 {job['type']}
                         </div>
-                        <div style='background:#21262d;border-radius:4px;height:5px;width:100%;'>
+                        <div style='background:var(--border-light);border-radius:4px;height:5px;width:100%;'>
                             <div style='background:{color};height:5px;border-radius:4px;width:{progress_pct}%;'></div>
                         </div>
                     </div>
@@ -710,32 +767,32 @@ elif st.session_state.step == 3:
             with st.expander(f"🔍 Lihat Detail — {job['title']}"):
                 d1, d2, d3, d4 = st.columns(4)
                 d1.markdown(f"""
-                <div style='background:#161b22;border:1px solid #2d2d2d;border-top:3px solid {color};
+                <div style='background:var(--card-bg);border:1px solid var(--border);border-top:3px solid {color};
                 border-radius:10px;padding:12px;text-align:center;'>
-                    <div style='font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;'>Skor Kecocokan</div>
+                    <div style='font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;'>Skor Kecocokan</div>
                     <div style='font-size:26px;font-weight:700;color:{color};'>{sc*100:.0f}%</div>
                     <div style='font-size:11px;font-weight:600;color:{color};background:{bg_col};
                     border-radius:10px;padding:2px 8px;display:inline-block;margin-top:2px;'>{label}</div>
                 </div>""", unsafe_allow_html=True)
                 d2.markdown(f"""
-                <div style='background:#161b22;border:1px solid #2d2d2d;border-top:3px solid #58a6ff;
+                <div style='background:var(--card-bg);border:1px solid var(--border);border-top:3px solid #58a6ff;
                 border-radius:10px;padding:12px;text-align:center;'>
-                    <div style='font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;'>Perusahaan</div>
-                    <div style='font-size:15px;font-weight:600;color:#e0eaf4;'>{job['company']}</div>
-                    <div style='font-size:11px;color:#8b949e;margin-top:4px;'>📍 {job['location']}</div>
+                    <div style='font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;'>Perusahaan</div>
+                    <div style='font-size:15px;font-weight:600;color:var(--text-main);'>{job['company']}</div>
+                    <div style='font-size:11px;color:var(--text-muted);margin-top:4px;'>📍 {job['location']}</div>
                 </div>""", unsafe_allow_html=True)
                 d3.markdown(f"""
-                <div style='background:#161b22;border:1px solid #2d2d2d;border-top:3px solid #d29922;
+                <div style='background:var(--card-bg);border:1px solid var(--border);border-top:3px solid var(--warn-text);
                 border-radius:10px;padding:12px;text-align:center;'>
-                    <div style='font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;'>Tipe Pekerjaan</div>
-                    <div style='font-size:15px;font-weight:600;color:#e0eaf4;'>{job['type']}</div>
-                    <div style='font-size:11px;color:#8b949e;margin-top:4px;'>Ranking #{job['rank']} dari {k}</div>
+                    <div style='font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;'>Tipe Pekerjaan</div>
+                    <div style='font-size:15px;font-weight:600;color:var(--text-main);'>{job['type']}</div>
+                    <div style='font-size:11px;color:var(--text-muted);margin-top:4px;'>Ranking #{job['rank']} dari {k}</div>
                 </div>""", unsafe_allow_html=True)
                 d4.markdown(f"""
-                <div style='background:#161b22;border:1px solid #2d2d2d;border-top:3px solid #3fb950;
+                <div style='background:var(--card-bg);border:1px solid var(--border);border-top:3px solid var(--success-text);
                 border-radius:10px;padding:12px;text-align:center;'>
-                    <div style='font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;'>Estimasi Gaji</div>
-                    <div style='font-size:13px;font-weight:600;color:#3fb950;'>{job.get('gaji', 'TBA')}</div>
+                    <div style='font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;'>Estimasi Gaji</div>
+                    <div style='font-size:13px;font-weight:600;color:var(--success-text);'>{job.get('gaji', 'TBA')}</div>
                     <div style='margin-top:6px;'><a href="{job.get('link', '#')}" target="_blank" style='font-size:11px;color:#58a6ff;text-decoration:none;'>🔗 Lihat Lowongan</a></div>
                 </div>""", unsafe_allow_html=True)
 
@@ -744,14 +801,14 @@ elif st.session_state.step == 3:
                 matched   = st.session_state.skills_match[:5]
                 not_match = st.session_state.skill_gap
                 with skill_cols[0]:
-                    st.markdown("<div style='font-size:12px;color:#3fb950;font-weight:600;margin-bottom:6px;'>✓ Skills yang Cocok</div>", unsafe_allow_html=True)
+                    st.markdown("<div style='font-size:12px;color:var(--success-text);font-weight:600;margin-bottom:6px;'>✓ Skills yang Cocok</div>", unsafe_allow_html=True)
                     pills_match = "".join(f'<span class="pill-match">✓ {s}</span>' for s in matched)
-                    match_content = pills_match if pills_match else '<span style="color:#8b949e;font-size:12px;">—</span>'
+                    match_content = pills_match if pills_match else '<span style="color:var(--text-muted);font-size:12px;">—</span>'
                     st.markdown(f"<div style='display:flex;flex-wrap:wrap;gap:6px;'>{match_content}</div>", unsafe_allow_html=True)
                 with skill_cols[1]:
-                    st.markdown("<div style='font-size:12px;color:#ff7b7b;font-weight:600;margin-bottom:6px;'>✗ Skills yang Belum Dimiliki</div>", unsafe_allow_html=True)
+                    st.markdown("<div style='font-size:12px;color:var(--error-text);font-weight:600;margin-bottom:6px;'>✗ Skills yang Belum Dimiliki</div>", unsafe_allow_html=True)
                     pills_gap = "".join(f'<span class="pill-gap">✗ {s}</span>' for s in not_match)
-                    gap_content = pills_gap if pills_gap else '<span style="color:#8b949e;font-size:12px;">—</span>'
+                    gap_content = pills_gap if pills_gap else '<span style="color:var(--text-muted);font-size:12px;">—</span>'
                     st.markdown(f"<div style='display:flex;flex-wrap:wrap;gap:6px;'>{gap_content}</div>", unsafe_allow_html=True)
 
                 st.markdown("<br>", unsafe_allow_html=True)
@@ -759,7 +816,7 @@ elif st.session_state.step == 3:
                 <div style='background:linear-gradient(135deg,#1a0a0e,#2e0a18);
                 border:1px solid #e8274b;border-radius:10px;padding:12px;'>
                     <div style='font-size:11px;color:#e8274b;font-weight:600;margin-bottom:4px;'>💡 Saran untuk Posisi Ini</div>
-                    <div style='font-size:12px;color:#c9d1d9;line-height:1.6;'>
+                    <div style='font-size:12px;color:var(--text-main);line-height:1.6;'>
                         Tingkatkan skor kecocokan dengan mempelajari skill yang belum dimiliki.
                         Lihat tab <strong style='color:#e8274b;'>Skill Gap & Saran</strong> untuk panduan belajar lengkap.
                     </div>
@@ -779,13 +836,13 @@ elif st.session_state.step == 3:
             marker_color=[score_color(j["score"]) for j in jobs_k],
             text=[f"{j['score']:.2f}" for j in jobs_k],
             textposition="outside",
-            textfont=dict(color="#c9d1d9"),
+            textfont=dict(color="var(--text-main)"),
         ))
         fig.update_layout(
-            **plotly_dark(),
-            xaxis=dict(range=[0, 1.15], gridcolor="#21262d", color="#8b949e"),
-            yaxis=dict(autorange="reversed", color="#c9d1d9"),
-            title=dict(text="Skor Cosine Similarity per Lowongan", font=dict(color="#ffffff", size=14)),
+            **get_plotly_layout(),
+            xaxis=dict(range=[0, 1.15], gridcolor="var(--border-light)", color="var(--text-muted)"),
+            yaxis=dict(autorange="reversed", color="var(--text-main)"),
+            title=dict(text="Skor Cosine Similarity per Lowongan", font=dict(color="var(--text-head)", size=14)),
             height=380,
         )
         st.plotly_chart(fig, use_container_width=True)
@@ -822,8 +879,8 @@ elif st.session_state.step == 4:
     
     si1, si2, si3 = st.columns(3)
     selected_score = st.session_state.get('selected_job_score', 0.82)
-    si1.markdown(card_metric("✅ Skills Dimiliki",   f"{len(skills_now)} skill", "Terdeteksi dari CV",         "#3fb950"), unsafe_allow_html=True)
-    si2.markdown(card_metric("⚠️ Skill Gap",         f"{len(skill_gap)} skill", "Perlu dipelajari",           "#d29922"), unsafe_allow_html=True)
+    si1.markdown(card_metric("✅ Skills Dimiliki",   f"{len(skills_now)} skill", "Terdeteksi dari CV",         "var(--success-text)"), unsafe_allow_html=True)
+    si2.markdown(card_metric("⚠️ Skill Gap",         f"{len(skill_gap)} skill", "Perlu dipelajari",           "var(--warn-text)"), unsafe_allow_html=True)
     si3.markdown(card_metric("🏆 Tingkat Kecocokan", f"{selected_score*100:.0f}%", "Terbaik dari lowongan diproses","#e8274b"), unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -837,10 +894,10 @@ elif st.session_state.step == 4:
     match_cols = st.columns(3)
     for i, skill in enumerate(skills_now):
         match_cols[i % 3].markdown(f"""
-        <div style='background:#0a2e1a;border:1px solid #2ea043;border-radius:10px;
+        <div style='background:var(--success-bg);border:1px solid var(--success-border);border-radius:10px;
         padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:8px;'>
-            <span style='color:#3fb950;font-size:16px;'>✓</span>
-            <span style='color:#e0eaf4;font-size:13px;font-weight:500;'>{skill}</span>
+            <span style='color:var(--success-text);font-size:16px;'>✓</span>
+            <span style='color:var(--text-main);font-size:13px;font-weight:500;'>{skill}</span>
         </div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -852,13 +909,15 @@ elif st.session_state.step == 4:
         line_color="#e8274b", fillcolor="rgba(232,39,75,0.15)"))
     fig.add_trace(go.Scatterpolar(
         r=[90,85,80,85,75,90], theta=cats+[cats[0]], fill="toself", name="Persyaratan Lowongan",
-        line_color="#58a6ff", fillcolor="rgba(88,166,255,0.08)"))
+        line_color="#0969da" if is_light else "#58a6ff", fillcolor="rgba(9,105,218,0.08)" if is_light else "rgba(88,166,255,0.08)"))
     fig.update_layout(
-        polar=dict(bgcolor="#161b22",
-                   radialaxis=dict(visible=True,range=[0,100],color="#8b949e",gridcolor="#2d2d2d"),
-                   angularaxis=dict(color="#c9d1d9")),
-        paper_bgcolor="#0d1117", plot_bgcolor="#0d1117", font=dict(color="#c9d1d9"),
-        legend=dict(bgcolor="#161b22",bordercolor="#2d2d2d",borderwidth=1,
+        polar=dict(bgcolor="#ffffff" if is_light else "#161b22",
+                   radialaxis=dict(visible=True,range=[0,100],color="#57606a" if is_light else "#8b949e",gridcolor="#d0d7de" if is_light else "#2d2d2d"),
+                   angularaxis=dict(color="#24292f" if is_light else "#c9d1d9")),
+        paper_bgcolor="#f6f8fa" if is_light else "#0d1117", 
+        plot_bgcolor="#f6f8fa" if is_light else "#0d1117", 
+        font=dict(color="#24292f" if is_light else "#c9d1d9"),
+        legend=dict(bgcolor="#ffffff" if is_light else "#161b22", bordercolor="#d0d7de" if is_light else "#2d2d2d", borderwidth=1,
                     orientation="h",yanchor="bottom",y=-0.15),
         margin=dict(t=20,b=40), height=380,
     )
@@ -874,19 +933,19 @@ elif st.session_state.step == 4:
             gc1, gc2 = st.columns([1, 2])
             with gc1:
                 st.markdown(f"""
-                <div style='background:#2e0a0a;border:1px solid #e8274b;border-radius:10px;
+                <div style='background:var(--error-bg);border:1px solid #e8274b;border-radius:10px;
                 padding:14px;text-align:center;'>
                     <div style='font-size:28px;margin-bottom:6px;'>⚠️</div>
-                    <div style='font-size:13px;font-weight:600;color:#ff7b7b;'>{skill}</div>
-                    <div style='font-size:11px;color:#8b949e;margin-top:4px;'>Belum terdeteksi</div>
+                    <div style='font-size:13px;font-weight:600;color:var(--error-text);'>{skill}</div>
+                    <div style='font-size:11px;color:var(--text-muted);margin-top:4px;'>Belum terdeteksi</div>
                 </div>""", unsafe_allow_html=True)
             with gc2:
                 st.markdown(f"""
-                <div style='background:#161b22;border:1px solid #2d2d2d;border-radius:10px;padding:14px;'>
+                <div style='background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:14px;'>
                     <div style='font-size:11px;color:#e8274b;font-weight:600;margin-bottom:6px;'>💡 SUMBER BELAJAR</div>
                     <div style='font-size:14px;color:#58a6ff;margin-bottom:10px;'>{src}</div>
-                    <div style='font-size:11px;color:#8b949e;margin-bottom:4px;'>⏱ ESTIMASI WAKTU</div>
-                    <div style='font-size:16px;font-weight:600;color:#d29922;'>{dur}</div>
+                    <div style='font-size:11px;color:var(--text-muted);margin-bottom:4px;'>⏱ ESTIMASI WAKTU</div>
+                    <div style='font-size:16px;font-weight:600;color:var(--warn-text);'>{dur}</div>
                 </div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -896,10 +955,10 @@ elif st.session_state.step == 4:
         <div style='font-size:13px;color:#e8274b;font-weight:600;margin-bottom:8px;'>
             🎯 Prioritas Pengembangan Karir
         </div>
-        <div style='font-size:13px;color:#c9d1d9;line-height:1.7;'>
-            1. <strong style="color:#3fb950;">Apache Spark</strong> — Paling banyak dicari untuk posisi Data Scientist di Indonesia<br>
+        <div style='font-size:13px;color:var(--text-main);line-height:1.7;'>
+            1. <strong style="color:var(--success-text);">Apache Spark</strong> — Paling banyak dicari untuk posisi Data Scientist di Indonesia<br>
             2. <strong style="color:#58a6ff;">Kubernetes</strong> — Krusial untuk MLOps dan deployment model di production<br>
-            3. <strong style="color:#d29922;">Scala</strong> — Digunakan bersama Spark untuk big data engineering
+            3. <strong style="color:var(--warn-text);">Scala</strong> — Digunakan bersama Spark untuk big data engineering
         </div>
     </div>""", unsafe_allow_html=True)
 

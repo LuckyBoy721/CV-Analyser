@@ -73,40 +73,57 @@ def extract_summary(text):
 
 def extract_skills(text):
     lines = text.split("\n")
-    skills = []
+    raw_skills = []
     capture = False
     start_keywords = ["keahlian", "skills", "skill", "kompetensi", "tools", "teknologi"]
-    stop_keywords = ["penghargaan", "bahasa", "hobi", "referensi", "pendidikan", "pengalaman", "organisasi"]
+    stop_keywords = ["penghargaan", "bahasa", "hobi", "referensi", "pendidikan", "pengalaman", "organisasi", "tentang", "profil", "summary"]
 
     for line in lines:
         line = line.strip().lower()
-        if any(k in line for k in start_keywords):
+        if not line:
+            continue
+            
+        # Check start
+        if any(line.startswith(k) or line == k for k in start_keywords):
             capture = True
             continue
-        if capture and any(k in line for k in stop_keywords):
+            
+        # Check stop
+        if capture and any(line.startswith(k) or line == k for k in stop_keywords):
             break
+            
         if capture:
-            if not line:
-                continue
-            if len(line.split()) > 10:
-                continue
-            line = re.sub(r'^[•●▪\-]+', '', line).strip()
-            skills.append(line)
+            raw_skills.append(line)
 
-    if not skills:
+    if not raw_skills:
+        # Fallback: If no explicit skill section, look for lines with skill-like delimiters
         for line in lines:
             line = line.strip().lower()
-            if not line:
-                continue
-            if 1 <= len(line.split()) <= 5:
-                if any(k in line for k in [
-                    "universitas", "pendidikan", "pengalaman kerja",
-                    "organization", "address", "email"
-                ]):
-                    continue
-                skills.append(line)
+            if "," in line or "•" in line or "|" in line or ";" in line:
+                raw_skills.append(line)
 
-    return list(set(skills))
+    final_skills = []
+    for line in raw_skills:
+        # Split by common delimiters (comma, bullet, pipe, semicolon)
+        parts = re.split(r'[,|•●▪;]', line)
+        for part in parts:
+            # Clean leading/trailing non-alphanumeric chars (like dashes)
+            part = re.sub(r'^[^a-zA-Z0-9]+|[^a-zA-Z0-9+]+$', '', part).strip()
+            if not part:
+                continue
+            
+            # Filtering noise
+            if len(part) < 2 or len(part) > 30: continue  # Too short/long
+            if len(part.split()) > 4: continue  # A skill is usually 1-4 words max
+            if re.search(r'\d{4}', part): continue  # Contains a year (e.g. 2015)
+            if re.search(r'\d{9,}', part): continue  # Contains phone number
+            if "@" in part or ".com" in part or ".id" in part: continue  # Email or web
+            if any(month in part for month in ['jan ', 'feb ', 'mar ', 'apr ', 'mei ', 'jun ', 'jul ', 'agu ', 'sep ', 'okt ', 'nov ', 'des ']): continue
+            if any(noise in part for noise in ['jalan ', 'alamat', 'telepon', 'phone', 'email', 'referensi', 'cv ', 'curriculum vitae', 'nama', 'tempat', 'pt.', 'pt ', 'cv.', 'sma ', 'smk ', 'smak ', 'universitas', 'institut', 'sekolah']): continue
+            
+            final_skills.append(part)
+
+    return list(set(final_skills))
 
 def extract_education(text):
     edu_text = extract_section(
