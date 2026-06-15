@@ -726,7 +726,8 @@ elif st.session_state.step == 3:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    tab_list, tab_chart = st.tabs(["  📋  Daftar Lowongan  ", "  📊  Visualisasi Skor  "])
+    st.markdown("<h3 style='margin-bottom:16px;color:var(--text-head);'>📋 Daftar Lowongan</h3>", unsafe_allow_html=True)
+    tab_list = st.container()
 
     with tab_list:
         st.markdown("""
@@ -839,24 +840,7 @@ elif st.session_state.step == 3:
                     st.session_state.selected_job_company = job["company"]
                     st.session_state.selected_job_score   = job["score"]
                     st.rerun()
-    with tab_chart:
-        fig = go.Figure(go.Bar(
-            x=[j["score"] for j in jobs_k],
-            y=[j["title"] + " (" + j["company"] + ")"  for j in jobs_k],
-            orientation="h",
-            marker_color=[score_color(j["score"]) for j in jobs_k],
-            text=[f"{j['score']:.2f}" for j in jobs_k],
-            textposition="outside",
-            textfont=dict(color="var(--text-main)"),
-        ))
-        fig.update_layout(
-            **get_plotly_layout(),
-            xaxis=dict(range=[0, 1.15], gridcolor="var(--border-light)", color="var(--text-muted)"),
-            yaxis=dict(autorange="reversed", color="var(--text-main)"),
-            title=dict(text="Skor Cosine Similarity per Lowongan", font=dict(color="var(--text-head)", size=14)),
-            height=380,
-        )
-        st.plotly_chart(fig, use_container_width=True)
+
 
     st.markdown("<br>", unsafe_allow_html=True)
 
