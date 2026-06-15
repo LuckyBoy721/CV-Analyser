@@ -13,3 +13,4 @@ google-generativeai
 python-dotenv
 Pillow
 numpy
+torchvision
