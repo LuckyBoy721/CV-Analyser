@@ -7,6 +7,7 @@ Aplikasi ini menggabungkan pekerjaan dari berbagai pipeline modul:
 2. **`edo/`**: Scraping data lowongan pekerjaan & pembersihan data (*Job Scraper & Preprocessor*).
 3. **`dimas/`**: Evaluasi model *Machine Learning* & implementasi algoritma kemiripan teks.
 4. **`sintya/`**: Antarmuka visual Dashboard Streamlit (Desain B & Desain D).
+5. **`radifan/`**: Modul integrasi AI Chatbot berbasis RAG (Retrieval-Augmented Generation) menggunakan Google Gemini AI.
 
 ---
 
@@ -59,8 +60,20 @@ uv pip install -r requirements.txt
 ```
 *Catatan: Jika file `requirements.txt` belum tersedia, instal paket utama berikut:*
 ```bash
-uv pip install streamlit pandas plotly scikit-learn sentence-transformers torchvision requests beautifulsoup4 deep-translator nltk tqdm matplotlib
+uv pip install streamlit pandas plotly scikit-learn sentence-transformers torchvision requests beautifulsoup4 deep-translator nltk tqdm matplotlib google-generativeai python-dotenv
 ```
+
+### 4. Konfigurasi API Key (Untuk Fitur Chatbot RAG)
+Aplikasi ini memiliki fitur Chatbot RAG berbasis Google Gemini AI. Anda diwajibkan untuk menyediakan API Key Google AI Studio.
+1. Salin file `.env.example` menjadi `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+2. Buka file `.env` dan masukkan API Key Anda:
+   ```env
+   GEMINI_API_KEY=AQ.xxxxxx_API_Key_Anda_Di_Sini_xxxxxxx
+   ```
+*(Catatan: Mulai pertengahan 2026, Google merilis format API Key baru berawalan `AQ.`. API Key dengan awalan `AIzaSy` adalah format lama yang mungkin sudah usang).*
 
 ---
 

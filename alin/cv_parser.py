@@ -6,6 +6,13 @@ from PyPDF2 import PdfReader
 from deep_translator import GoogleTranslator
 from tqdm import tqdm
 
+try:
+    from pdf2image import convert_from_path
+    import pytesseract
+    OCR_AVAILABLE = True
+except ImportError:
+    OCR_AVAILABLE = False
+
 def extract_zip(zip_path, extract_to="cv_folder"):
     if not os.path.exists(extract_to):
         os.makedirs(extract_to)
@@ -21,14 +28,35 @@ def get_pdf_files(folder):
                 pdf_files.append(os.path.join(root, file))
     return pdf_files
 
-def pdf_to_text(file_path):
+def pdf_to_text(file_path, progress_callback=None):
     reader = PdfReader(file_path)
     text = ""
     for page in reader.pages:
         content = page.extract_text()
         if content:
             text += content + "\n"
-    return text.lower()
+    
+    text = text.lower().strip()
+    
+    # Fallback to OCR if text is empty or too short (likely a scanned photo PDF)
+    if len(text) < 50 and OCR_AVAILABLE:
+        try:
+            if progress_callback: progress_callback(15, "Menyiapkan mesin OCR...")
+            images = convert_from_path(file_path)
+            ocr_text = ""
+            total_pages = len(images)
+            for i, img in enumerate(images):
+                if progress_callback: progress_callback(15 + int(((i+1)/total_pages)*20), f"Memindai halaman {i+1} dari {total_pages} (OCR)...")
+                ocr_text += pytesseract.image_to_string(img) + "\n"
+            
+            if ocr_text.strip():
+                text = ocr_text.lower().strip()
+        except Exception as e:
+            print(f"\n[!] Gagal melakukan OCR pada {file_path}.")
+            print(f"[!] Pastikan 'tesseract-ocr' dan 'poppler-utils' sudah terinstall di sistem operasi Anda.")
+            print(f"[!] Error detail: {e}\n")
+
+    return text
 
 def extract_email(text):
     match = re.findall(r'\b[\w\.-]+@[\w\.-]+\.\w+\b', text)
@@ -99,8 +127,14 @@ def extract_skills(text):
         # Fallback: If no explicit skill section, look for lines with skill-like delimiters
         for line in lines:
             line = line.strip().lower()
-            if "," in line or "•" in line or "|" in line or ";" in line:
+            if "•" in line or "|" in line or ";" in line:
                 raw_skills.append(line)
+            elif "," in line:
+                # Avoid capturing full sentences with commas
+                num_commas = line.count(",")
+                num_words = len(line.split())
+                if num_words > 0 and (num_words / (num_commas + 1)) <= 3.5:
+                    raw_skills.append(line)
 
     final_skills = []
     for line in raw_skills:
@@ -109,6 +143,12 @@ def extract_skills(text):
         for part in parts:
             # Clean leading/trailing non-alphanumeric chars (like dashes)
             part = re.sub(r'^[^a-zA-Z0-9]+|[^a-zA-Z0-9+]+$', '', part).strip()
+            
+            # Remove common sentence fragments or conjunctions
+            for prefix in ["termasuk ", "dan ", "serta ", "seperti ", "juga ", "memiliki ", "kemampuan "]:
+                if part.startswith(prefix):
+                    part = part[len(prefix):].strip()
+
             if not part:
                 continue
             
@@ -119,7 +159,7 @@ def extract_skills(text):
             if re.search(r'\d{9,}', part): continue  # Contains phone number
             if "@" in part or ".com" in part or ".id" in part: continue  # Email or web
             if any(month in part for month in ['jan ', 'feb ', 'mar ', 'apr ', 'mei ', 'jun ', 'jul ', 'agu ', 'sep ', 'okt ', 'nov ', 'des ']): continue
-            if any(noise in part for noise in ['jalan ', 'alamat', 'telepon', 'phone', 'email', 'referensi', 'cv ', 'curriculum vitae', 'nama', 'tempat', 'pt.', 'pt ', 'cv.', 'sma ', 'smk ', 'smak ', 'universitas', 'institut', 'sekolah']): continue
+            if any(noise in part for noise in ['jalan ', 'alamat', 'telepon', 'phone', 'email', 'referensi', 'cv ', 'curriculum vitae', 'nama', 'tempat', 'pt.', 'pt ', 'cv.', 'sma ', 'smk ', 'smak ', 'universitas', 'institut', 'sekolah', 'portofolio yang']): continue
             
             final_skills.append(part)
 
@@ -169,12 +209,19 @@ def extract_experience(text):
     exp_text = re.sub(r'\n+', ' ', exp_text)
     return exp_text.strip()
 
-def parse_cv(file_path):
-    text = pdf_to_text(file_path)
+def parse_cv(file_path, progress_callback=None):
+    if progress_callback: progress_callback(5, "Membaca struktur file PDF...")
+    text = pdf_to_text(file_path, progress_callback)
+    
+    if progress_callback: progress_callback(40, "Mengekstrak entitas penting...")
     name = extract_name(text)
     email = extract_email(text)
     phone = extract_phone(text)
+    
+    if progress_callback: progress_callback(45, "Mengekstrak skills...")
     skills = extract_skills(text)
+    
+    if progress_callback: progress_callback(50, "Mengekstrak profil dan pengalaman...")
     summary = extract_summary(text)
     experience = extract_experience(text)
     education = extract_education(text)

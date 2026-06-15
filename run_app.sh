@@ -13,25 +13,8 @@ echo -e "${CYAN}=====================================================${NC}"
 echo -e "${GREEN}             MEMULAI APLIKASI CVMATCH AI             ${NC}"
 echo -e "${CYAN}=====================================================${NC}\n"
 
-echo -e "Silakan pilih antarmuka desain yang ingin digunakan:"
-echo -e "  ${YELLOW}[1]${NC} Desain B (UI Terang & Bersih)"
-echo -e "  ${YELLOW}[2]${NC} Desain D (UI Elegan Merah-Gelap)"
-read -p "Masukkan pilihan (1/2): " choice
-
-case $choice in
-    1)
-        app_file="sintya/desain_B.py"
-        echo -e "\n[*] Menyiapkan Desain B..."
-        ;;
-    2)
-        app_file="sintya/desain_D.py"
-        echo -e "\n[*] Menyiapkan Desain D..."
-        ;;
-    *)
-        echo -e "\n${RED}[!] Pilihan tidak valid. Secara default menggunakan Desain D.${NC}"
-        app_file="sintya/desain_D.py"
-        ;;
-esac
+app_file="sintya/desain_D.py"
+echo -e "\n[*] Menyiapkan Desain D..."
 
 # Cek apakah virtual environment lokal ada (untuk jaga-jaga)
 if [ -d ".venv" ]; then
@@ -42,6 +25,11 @@ fi
 echo -e "[*] Membuka Streamlit server...\n"
 echo -e "Silakan tunggu beberapa saat. Jendela browser akan otomatis terbuka."
 echo -e "Untuk menghentikan server, tekan ${RED}Ctrl + C${NC} di terminal ini.\n"
+
+# Mencegah deadlock PyTorch pada CPU saat berjalan di dalam thread Streamlit
+export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
 
 # Menjalankan aplikasi dengan modul streamlit yang dipilih
 python -m streamlit run "$app_file"

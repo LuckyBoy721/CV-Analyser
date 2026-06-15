@@ -56,7 +56,7 @@ check_requirements() {
 
     # Menginstal package secara super cepat dengan uv pip
     echo -e "${YELLOW}[*] Menginstal / memastikan dependencies dengan uv...${NC}"
-    uv pip install PyPDF2 deep-translator pandas tqdm nltk
+    uv pip install PyPDF2 deep-translator pandas tqdm nltk pdf2image pytesseract
 
     # Memastikan stopwords NLTK terunduh
     python3 -c "import nltk; nltk.download('stopwords', quiet=True)" 2>/dev/null

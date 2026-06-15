@@ -2,3 +2,12 @@ __pycache__/
 *.pyc
 .venv/
 dimas/models/job_embeddings.npy
+dimas/models/all-MiniLM-L6-v2/
+
+# Environment variables
+.env
+.env.local
+
+# IDEs
+.idea/
+.vscode/

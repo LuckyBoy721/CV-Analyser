@@ -372,7 +372,7 @@ def render_navbar():
 
 
 def render_steps(current):
-    steps = ["Upload CV","Pilih Model","Rekomendasi","Skill Insight"]
+    steps = ["Upload CV","Pilih Model","Rekomendasi","Skill Insight","Tanya AI"]
     cols  = st.columns(len(steps) * 2 - 1)
     for i, label in enumerate(steps):
         n = i + 1
@@ -473,36 +473,45 @@ if st.session_state.step == 1:
             st.session_state.uploaded_file_bytes = uploaded.read()
             st.session_state.uploaded_file_name  = uploaded.name
             
-            with st.spinner("🔍 Mengekstrak dan menganalisis CV dengan NLP pipeline..."):
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-                    tmp.write(st.session_state.uploaded_file_bytes)
-                    tmp_path = tmp.name
+            progress_bar = st.progress(0, text="Menyiapkan file...")
+            def update_progress(val, text):
+                progress_bar.progress(val, text=text)
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+                tmp.write(st.session_state.uploaded_file_bytes)
+                tmp_path = tmp.name
+            
+            try:
+                parsed_data = parse_cv(tmp_path, progress_callback=update_progress)
+                os.remove(tmp_path)
                 
-                try:
-                    parsed_data = parse_cv(tmp_path)
-                    os.remove(tmp_path)
-                    
-                    raw_text = parsed_data.get('text', '')
-                    translated_text = safe_translate(clean_text(raw_text))
-                    
-                    st.session_state.cv_text_tfidf = preprocess_tfidf(translated_text)
-                    st.session_state.cv_text_embed = preprocess_embed(translated_text)
-                    
-                    st.session_state.parse_failed = False
-                    st.session_state.cv_info = {
-                        "nama": parsed_data.get("candidate_name", ""),
-                        "email": parsed_data.get("email", ""),
-                        "phone": parsed_data.get("phone", ""),
-                        "ringkasan": parsed_data.get("summary", ""),
-                        "pendidikan": parsed_data.get("degree", "") + " " + parsed_data.get("university", ""),
-                        "pengalaman": parsed_data.get("experience", ""),
-                        "bahasa": "Diproses dengan NLP (Translated)"
-                    }
-                    st.session_state.skills_match = [s.strip() for s in parsed_data.get('skills', '').split(',') if s.strip()]
-                    if not st.session_state.skills_match:
-                        st.session_state.skills_match = ["Python", "SQL", "Teamwork"]
-                except Exception as e:
-                    st.session_state.parse_failed = True
+                update_progress(60, "Menerjemahkan teks (Translating)...")
+                raw_text = parsed_data.get('text', '')
+                translated_text = safe_translate(clean_text(raw_text))
+                
+                update_progress(80, "Melakukan pemrosesan NLP & Vektorisasi...")
+                st.session_state.cv_text_tfidf = preprocess_tfidf(translated_text)
+                st.session_state.cv_text_embed = preprocess_embed(translated_text)
+                
+                update_progress(100, "✅ Selesai!")
+                time.sleep(0.5)
+                progress_bar.empty()
+                
+                st.session_state.parse_failed = False
+                st.session_state.cv_info = {
+                    "nama": parsed_data.get("candidate_name", ""),
+                    "email": parsed_data.get("email", ""),
+                    "phone": parsed_data.get("phone", ""),
+                    "ringkasan": parsed_data.get("summary", ""),
+                    "pendidikan": parsed_data.get("degree", "") + " " + parsed_data.get("university", ""),
+                    "pengalaman": parsed_data.get("experience", ""),
+                    "bahasa": "Diproses dengan NLP (Translated)"
+                }
+                st.session_state.skills_match = [s.strip() for s in parsed_data.get('skills', '').split(',') if s.strip()]
+                if not st.session_state.skills_match:
+                    st.session_state.skills_match = ["Python", "SQL", "Teamwork"]
+            except Exception as e:
+                st.session_state.parse_failed = True
 
         has_file = st.session_state.uploaded_file_bytes is not None
 
@@ -902,13 +911,38 @@ elif st.session_state.step == 4:
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("#### 📊 Radar Chart — Profil Anda vs Kebutuhan Lowongan")
-    cats = ["Python & DS","ML & AI","Data Eng.","NLP","MLOps"]
+    
+    # Kumpulkan skill gap dan skills now secara seimbang (prioritaskan gap agar terlihat)
+    sg = skill_gap[:3]
+    sn = skills_now[:5 - len(sg)]
+    if len(sn) < (5 - len(sg)):
+        sg = skill_gap[:5 - len(sn)]
+        
+    cats_skills = sn + sg
+    if len(cats_skills) < 5:
+        cats_skills += ["Adaptabilitas", "Komunikasi", "Teamwork", "Problem Solving", "Manajemen"][:5 - len(cats_skills)]
+
+    cats = ["Kecocokan Total"] + cats_skills
+    cats_label = [(c[:12]+"..").title() if len(c)>14 else c.title() for c in cats]
+
+    r_user = [int(selected_score * 100)]
+    r_job = [100]
+    
+    for c in cats_skills:
+        if c in skills_now:
+            r_user.append(90)
+        elif c in skill_gap:
+            r_user.append(25)
+        else:
+            r_user.append(85)
+        r_job.append(100)
+
     fig = go.Figure()
     fig.add_trace(go.Scatterpolar(
-        r=[95,88,60,90,40,95], theta=cats+[cats[0]], fill="toself", name="Profil Anda",
+        r=r_user + [r_user[0]], theta=cats_label + [cats_label[0]], fill="toself", name="Profil Anda",
         line_color="#e8274b", fillcolor="rgba(232,39,75,0.15)"))
     fig.add_trace(go.Scatterpolar(
-        r=[90,85,80,85,75,90], theta=cats+[cats[0]], fill="toself", name="Persyaratan Lowongan",
+        r=r_job + [r_job[0]], theta=cats_label + [cats_label[0]], fill="toself", name="Persyaratan Lowongan",
         line_color="#0969da" if is_light else "#58a6ff", fillcolor="rgba(9,105,218,0.08)" if is_light else "rgba(88,166,255,0.08)"))
     fig.update_layout(
         polar=dict(bgcolor="#ffffff" if is_light else "#161b22",
@@ -949,16 +983,35 @@ elif st.session_state.step == 4:
                 </div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("""
-    <div style='background:linear-gradient(135deg,#1a0a0e,#2e0a18);
+    # Generate dynamic content for Prioritas Pengembangan Karir
+    if len(skill_gap) == 0:
+        prioritas_html = f"Luar biasa! Anda sudah menguasai semua skill utama yang dideteksi untuk posisi <strong style='color:var(--success-text);'>{selected_title}</strong>.<br>Pertahankan dan terus kembangkan portofolio Anda!"
+    else:
+        prioritas_html = ""
+        colors = ["#e8274b", "#58a6ff", "var(--warn-text)", "var(--success-text)"]
+        for i, skill in enumerate(skill_gap[:4]):
+            color = colors[i % len(colors)]
+            if i == 0:
+                desc = f"Paling krusial untuk memenuhi kualifikasi utama pada posisi {selected_title}"
+            elif i == 1:
+                desc = "Sangat disarankan untuk dikuasai guna meningkatkan daya saing Anda"
+            elif i == 2:
+                desc = "Keahlian pendukung yang akan membuat profil Anda jauh lebih menonjol"
+            else:
+                desc = "Nilai tambah yang signifikan dan sering dicari oleh perekrut"
+                
+            prioritas_html += f"{i+1}. <strong style='color:{color};'>{skill.title()}</strong> — {desc}<br>"
+
+    bg_grad = "linear-gradient(135deg,#fff0f3,#fff5f7)" if is_light else "linear-gradient(135deg,#1a0a0e,#2e0a18)"
+
+    st.markdown(f"""
+    <div style='background:{bg_grad};
     border:1px solid #e8274b;border-radius:12px;padding:16px;'>
         <div style='font-size:13px;color:#e8274b;font-weight:600;margin-bottom:8px;'>
             🎯 Prioritas Pengembangan Karir
         </div>
         <div style='font-size:13px;color:var(--text-main);line-height:1.7;'>
-            1. <strong style="color:var(--success-text);">Apache Spark</strong> — Paling banyak dicari untuk posisi Data Scientist di Indonesia<br>
-            2. <strong style="color:#58a6ff;">Kubernetes</strong> — Krusial untuk MLOps dan deployment model di production<br>
-            3. <strong style="color:var(--warn-text);">Scala</strong> — Digunakan bersama Spark untuk big data engineering
+            {prioritas_html}
         </div>
     </div>""", unsafe_allow_html=True)
 
@@ -967,10 +1020,84 @@ elif st.session_state.step == 4:
     if bc.button("← Kembali", use_container_width=True):
         st.session_state.step = 3
         st.rerun()
-    if rc.button("🔄 Analisis CV Baru", type="primary", use_container_width=True):
-        for key in ["step","model_choice","top_k","uploaded_file_bytes","uploaded_file_name",
-                    "parse_failed","manual_skills","manual_edu","manual_exp","cv_info","skills_match",
-                    "selected_job_title","selected_job_company","selected_job_score"]:
-            if key in st.session_state:
-                del st.session_state[key]
+    if rc.button("Lanjut Tanya AI →", type="primary", use_container_width=True):
+        st.session_state.step = 5
         st.rerun()
+
+# ──────────────────────────────────────────────────────────────
+# STEP 5 — Tanya AI (RAG)
+# ──────────────────────────────────────────────────────────────
+elif st.session_state.step == 5:
+    st.subheader("🤖 Chatbot AI (RAG)")
+    st.caption("Tanyakan apapun seputar hasil analisis CV dan rekomendasi karir Anda.")
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    from radifan.chatbot_rag import init_chatbot, generate_chat_response
+    try:
+        # Inisialisasi model langsung menggunakan environment variable (.env)
+        model = init_chatbot()
+        
+        # Kumpulkan context data
+        context_data = {
+            "nama": st.session_state.cv_info.get('nama', '-'),
+            "pendidikan": st.session_state.cv_info.get('pendidikan', '-'),
+            "pengalaman": st.session_state.cv_info.get('pengalaman', '-'),
+            "skills": ", ".join(st.session_state.skills_match),
+            "job_title": st.session_state.get('selected_job_title', 'Belum pilih pekerjaan'),
+            "job_company": st.session_state.get('selected_job_company', '-'),
+            "job_score": f"{st.session_state.get('selected_job_score', 0)*100:.0f}",
+            "skill_gap": ", ".join(st.session_state.get('skill_gap', []))
+        }
+        
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": f"Halo {context_data['nama']}! Saya adalah CVMatch AI Asisten. Saya sudah membaca profil CV Anda dan melihat Anda tertarik pada posisi **{context_data['job_title']}**. Ada yang ingin ditanyakan tentang strategi karir atau cara menutupi skill gap Anda?"
+            })
+
+        for msg in st.session_state.messages:
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
+
+        st.markdown("<div style='font-size:12px; color:var(--text-muted); margin-top:10px; margin-bottom:5px;'>💡 <b>Saran Pertanyaan (Klik untuk kirim otomatis):</b></div>", unsafe_allow_html=True)
+        c1, c2, c3 = st.columns(3)
+        prompt_from_button = None
+        
+        if c1.button("🎯 Cara atasi Skill Gap", use_container_width=True):
+            prompt_from_button = "Apa langkah paling efektif untuk menutupi kekurangan skill (skill gap) saya demi posisi ini?"
+        if c2.button("📝 Evaluasi Isi CV", use_container_width=True):
+            prompt_from_button = "Berdasarkan data CV saya, adakah pengalaman atau pendidikan tertentu yang harus saya tonjolkan saat melamar?"
+        if c3.button("💡 Prediksi Interview", use_container_width=True):
+            prompt_from_button = "Berikan 3 contoh pertanyaan wawancara teknis/HR yang kemungkinan ditanyakan untuk posisi ini beserta tips menjawabnya."
+
+        prompt_from_input = st.chat_input("Tanyakan sesuatu (misal: 'Bagaimana cara belajar AWS yang efektif?'):")
+        prompt = prompt_from_button or prompt_from_input
+
+        if prompt:
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            with st.chat_message("user"):
+                st.markdown(prompt)
+
+            with st.chat_message("assistant"):
+                with st.spinner("Berpikir..."):
+                    # Panggil fungsi generate dari radifan
+                    response_text = generate_chat_response(
+                        model=model,
+                        context_data=context_data,
+                        chat_history=st.session_state.messages[:-1], # pass history without current prompt
+                        new_user_prompt=prompt
+                    )
+                    st.markdown(response_text)
+                    st.session_state.messages.append({"role": "assistant", "content": response_text})
+        
+        st.markdown("<br><hr>", unsafe_allow_html=True)
+        if st.button("🔄 Selesai / Analisis CV Baru"):
+            for key in ["step","model_choice","top_k","uploaded_file_bytes","uploaded_file_name",
+                        "parse_failed","manual_skills","manual_edu","manual_exp","cv_info","skills_match",
+                        "selected_job_title","selected_job_company","selected_job_score", "messages", "skill_gap"]:
+                if key in st.session_state: del st.session_state[key]
+            st.rerun()
+                
+    except Exception as e:
+        st.error(f"Gagal menghubungkan ke Gemini API. Pastikan API key valid. Detail: {e}")
