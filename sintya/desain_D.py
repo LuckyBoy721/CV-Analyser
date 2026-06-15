@@ -454,11 +454,11 @@ if st.session_state.step == 1:
 
     with col_main:
         st.subheader("Upload CV Anda")
-        st.caption("Format PDF · Maks. 200 MB · Informasi diekstrak otomatis menggunakan NLP")
+        st.caption("Format PDF · Maks. 200 MB · Informasi diekstrak otomatis menggunakan NLP & AI OCR")
 
         st.markdown("""
         <div style='display:flex;flex-direction:column;gap:6px;margin:10px 0 14px 0;'>
-            <div class='info-chip-ok'><span>✓</span><span>Mendukung PDF berbasis teks (bukan scan)</span></div>
+            <div class='info-chip-ok'><span>✓</span><span>Mendukung PDF teks maupun hasil scan (didukung oleh OCR)</span></div>
             <div class='info-chip-warn'><span>⚠</span><span>Jika CV tidak terbaca dengan baik, Anda dapat mengisi informasi secara manual</span></div>
         </div>
         """, unsafe_allow_html=True)
