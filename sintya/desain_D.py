@@ -680,6 +680,12 @@ elif st.session_state.step == 2:
                 rec_jobs = []
                 for rank, idx in enumerate(top_indices, 1):
                     row = df_jobs.iloc[idx]
+                    req_text = str(row.get("Requirements", "")).lower()
+                    cv_skills = [s.lower() for s in st.session_state.skills_match]
+                    common_tech = ["sql", "agile", "aws", "docker", "linux", "cloud", "scrum", "rest api", "kubernetes", "scala", "spark", "hadoop", "tableau", "excel", "python", "javascript", "react", "figma", "english", "seo"]
+                    gap = [t.capitalize() for t in common_tech if t in req_text and t not in cv_skills][:3]
+                    if not gap: gap = ["Teknologi Lanjutan", "Sertifikasi Spesifik"]
+                    
                     rec_jobs.append({
                         "rank": rank,
                         "title": row.get("Posisi", "Unknown"),
@@ -687,19 +693,15 @@ elif st.session_state.step == 2:
                         "location": row.get("Lokasi", "Unknown"),
                         "type": row.get("Type", "Unknown"),
                         "score": float(min(max(scores[idx], 0.0), 1.0)),
-                        "requirements": row.get("Requirements", "")
+                        "requirements": row.get("Requirements", ""),
+                        "link": row.get("Link", "#"),
+                        "gaji": row.get("Gaji", "TBA"),
+                        "skill_gap": gap
                     })
                 st.session_state.recommended_jobs = rec_jobs
                 
-                # Setup Skill Gap
-                top_job = rec_jobs[0] if rec_jobs else None
-                if top_job:
-                    req_text = top_job['requirements'].lower()
-                    cv_skills = [s.lower() for s in st.session_state.skills_match]
-                    common_tech = ["sql", "agile", "aws", "docker", "linux", "cloud", "scrum", "rest api", "kubernetes", "scala", "spark", "hadoop", "tableau"]
-                    gap = [t.capitalize() for t in common_tech if t in req_text and t not in cv_skills][:3]
-                    if not gap: gap = ["Teknologi Lanjutan", "Sertifikasi Spesifik"]
-                    st.session_state.skill_gap = gap
+                # Setup Skill Gap global metric using the top match
+                st.session_state.skill_gap = rec_jobs[0]["skill_gap"] if rec_jobs else []
 
         st.session_state.step = 3
         st.rerun()
@@ -808,7 +810,7 @@ elif st.session_state.step == 3:
                 st.markdown("<br>", unsafe_allow_html=True)
                 skill_cols = st.columns(2)
                 matched   = st.session_state.skills_match[:5]
-                not_match = st.session_state.skill_gap
+                not_match = job.get("skill_gap", [])
                 with skill_cols[0]:
                     st.markdown("<div style='font-size:12px;color:var(--success-text);font-weight:600;margin-bottom:6px;'>✓ Skills yang Cocok</div>", unsafe_allow_html=True)
                     pills_match = "".join(f'<span class="pill-match">✓ {s}</span>' for s in matched)
