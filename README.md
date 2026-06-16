@@ -7,7 +7,7 @@ Aplikasi ini menggabungkan pekerjaan dari berbagai pipeline modul:
 2. **`edo/`**: Scraping data lowongan pekerjaan & pembersihan data (*Job Scraper & Preprocessor*).
 3. **`dimas/`**: Evaluasi model *Machine Learning* & implementasi algoritma kemiripan teks.
 4. **`sintya/`**: Antarmuka visual Dashboard Streamlit (Desain B & Desain D).
-5. **`radifan/`**: Modul integrasi AI Chatbot berbasis RAG (Retrieval-Augmented Generation) menggunakan Google Gemini AI.
+5. **`radifan/`**: Modul Backend (Arsitektur Database SQLite & Integrasi API Chatbot RAG menggunakan Google Gemini AI) dikelola oleh Backend Developer.
 
 ---
 

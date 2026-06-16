@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import time
 import os
+import sqlite3
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0"
@@ -87,20 +88,71 @@ def scrape_jobs(start_page, max_pages, delay_list, delay_detail, output_file):
         print("⚠️ Tidak ada data yang berhasil discrape pada batch ini.")
         return
 
-    df = pd.DataFrame(job_list)
-    df.drop_duplicates(subset=["Posisi", "Link"], inplace=True)
+    df_raw = pd.DataFrame(job_list)
     
     output_dir = os.path.dirname(output_file)
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
 
-    if os.path.exists(output_file):
-        old_df = pd.read_csv(output_file)
-        df = pd.concat([old_df, df], ignore_index=True)
-        df.drop_duplicates(subset=["Posisi", "Link"], inplace=True)
-        
-    df.to_csv(output_file, index=False)
-    print(f"\n✅ Selesai! Data berhasil disimpan di {output_file} tanpa duplikasi.")
+    # --- Layer 1: Raw (Staging) ---
+    raw_file = output_file.replace(".csv", "_raw.csv")
+    if os.path.exists(raw_file):
+        old_raw = pd.read_csv(raw_file)
+        df_raw_saved = pd.concat([old_raw, df_raw], ignore_index=True)
+    else:
+        df_raw_saved = df_raw.copy()
+    
+    df_raw_saved.to_csv(raw_file, index=False)
+    print(f"\n✅ [Layer 1] Data Raw (Staging) disimpan di {raw_file}")
+
+    # --- Layer 2: Clean ---
+    # Menghilangkan duplikat dan membersihkan teks/nilai kosong
+    df_clean = df_raw_saved.drop_duplicates(subset=["Posisi", "Link"]).copy()
+    df_clean.fillna("Tidak Disebutkan", inplace=True)
+    for col in df_clean.columns:
+        if df_clean[col].dtype == "object":
+            df_clean[col] = df_clean[col].str.strip()
+    
+    clean_file = output_file.replace(".csv", "_clean.csv")
+    df_clean.to_csv(clean_file, index=False)
+    print(f"✅ [Layer 2] Data Clean disimpan di {clean_file}")
+
+    # --- Layer 3: Database (Source of Truth) ---
+    radifan_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "radifan")
+    os.makedirs(radifan_dir, exist_ok=True)
+    db_file = os.path.join(radifan_dir, "source_of_truth.db")
+    
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    
+    # Buat tabel utama jika belum ada (Link sebagai UNIQUE agar tidak duplikat)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS jobs (
+            Posisi TEXT,
+            Perusahaan TEXT,
+            Lokasi TEXT,
+            Type TEXT,
+            Gaji TEXT,
+            Requirements TEXT,
+            Link TEXT UNIQUE
+        )
+    ''')
+    
+    # Simpan data clean ke tabel sementara
+    df_clean.to_sql("jobs_temp", conn, if_exists="replace", index=False)
+    
+    # Insert ke tabel utama (IGNORE untuk link yang duplikat)
+    cursor.execute('''
+        INSERT OR IGNORE INTO jobs (Posisi, Perusahaan, Lokasi, Type, Gaji, Requirements, Link)
+        SELECT Posisi, Perusahaan, Lokasi, Type, Gaji, Requirements, Link FROM jobs_temp
+    ''')
+    
+    # Hapus tabel sementara
+    cursor.execute('DROP TABLE jobs_temp')
+    conn.commit()
+    conn.close()
+    
+    print(f"✅ [Layer 3] Data disimpan ke Database (Source of Truth) SQLite di {db_file}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="JobStreet Scraper")
