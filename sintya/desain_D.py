@@ -571,6 +571,7 @@ if st.session_state.step == 1:
             ("⚙️","Pilih Model",   "Pilih algoritma pencocokan terbaik"),
             ("📋","Rekomendasi",   "Top-5 lowongan paling cocok ditampilkan"),
             ("💡","Skill Insight", "Analisis gap & saran pengembangan karir"),
+            ("💬","Tanya AI",      "Asisten cerdas untuk konsultasi karir & CV"),
         ]
         for icon, title, desc in steps_info:
             st.markdown(f"""
