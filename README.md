@@ -27,6 +27,12 @@ CV-Analyser/
 │   ├── data/                  # Dataset lowongan hasil scraping
 │   ├── job_scraper.py         # Script scraper lowongan Jobstreet
 │   └── run_job_analyzer.sh    # Script pipeline scraping-preprocessing
+├── radifan/                   # Modul Backend & AI
+│   ├── chatbot_rag.py         # Integrasi API Gemini (Chatbot)
+│   ├── source_of_truth.db     # Layer 3 (Database SQLite utama)
+│   └── daily_scraper.yml      # Salinan konfigurasi cron scheduler
+├── .github/workflows/         # Konfigurasi CI/CD & Automasi
+│   └── daily_scraper.yml      # Job scraper otomatis (Setiap jam 7 Pagi)
 ├── sintya/                    # Antarmuka Dashboard Streamlit
 │   ├── desain_B.py            # Desain UI Terang & Bersih
 │   └── desain_D.py            # Desain UI Elegan Merah-Gelap
@@ -103,14 +109,20 @@ chmod +x run_evaluation.sh
 ./run_evaluation.sh
 ```
 
-### C. Modul Scraping Lowongan Baru (Modul `edo/`)
-Untuk memperbarui data lowongan pekerjaan menggunakan scraping terbaru:
+### C. Modul Scraping Lowongan Baru & Automasi Pipeline
+Sistem ini menggunakan arsitektur **3-Layer Data Pipeline**:
+1. **Layer 1 (Raw/Staging)**: Menyimpan data mentah ke `edo/data/dataset_raw.csv`.
+2. **Layer 2 (Clean)**: Data dibersihkan dan disimpan di `edo/data/dataset_clean.csv`.
+3. **Layer 3 (Database/Source of Truth)**: Data bebas duplikat divalidasi dan dikunci ke dalam `radifan/source_of_truth.db` menggunakan SQLite.
+
+**1. Jalankan Manual:**
 ```bash
 cd edo
-chmod +x run_job_analyzer.sh
-./run_job_analyzer.sh
+python job_scraper.py --start 1 --end 5
 ```
-Hasil scraping akan otomatis diperbarui ke database `edo/data/data_clean.csv` yang langsung digunakan sebagai basis data rekomendasi di aplikasi utama.
+
+**2. Jalankan Otomatis (GitHub Actions Scheduler):**
+Proyek ini telah dikonfigurasi untuk menjalankan tugas scraping ini secara otomatis **setiap hari pukul 07:00 pagi (WIB)**. Bot akan melakukan penarikan data baru dan langsung meng-update `source_of_truth.db` di repository ini.
 
 ---
 
