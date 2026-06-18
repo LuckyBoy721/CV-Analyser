@@ -10,7 +10,11 @@ Folder ini merupakan ruang kerja untuk komponen *backend* yang saya kembangkan. 
 Bekerja sama dengan modul Scraper, saya mengatur *data pipelining* agar data yang diproses tersimpan dengan aman menggunakan **SQLite** sebagai *Source of Truth* (Layer 3).
 - **`source_of_truth.db`**: File database utama (yang akan ter-generate otomatis saat pipeline dijalankan) disimpan dengan aman di direktori ini untuk digunakan oleh sistem inti. Mencegah adanya duplikasi data lowongan pekerjaan (*Job Recommendations*).
 
-### 2. Integrasi AI Chatbot (RAG)
+### 2. Automasi Pipeline (CI/CD)
+Sebagai *Backend Developer*, saya juga mengelola automasi penarikan data secara berkala agar database selalu *up-to-date*:
+- **`daily_scraper.yml`**: Ini adalah salinan/templat konfigurasi dari *GitHub Actions workflow* (`.github/workflows/daily_scraper.yml`) yang dijadwalkan berjalan setiap pukul 07:00 pagi WIB. Workflow ini akan memicu script scraper dan melakukan *auto-commit* perubahan database kembali ke repositori utama.
+
+### 3. Integrasi AI Chatbot (RAG)
 - **`chatbot_rag.py`**: Modul yang memuat fungsi-fungsi *backend* untuk menginisialisasi dan berinteraksi secara mulus dengan API Google Gemini (`gemini-flash-latest`).
 
 ## 🧠 Cara Kerja Chatbot RAG (Retrieval-Augmented Generation)
